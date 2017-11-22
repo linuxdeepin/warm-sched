@@ -21,14 +21,12 @@ func ShowDirCacheInfos(root string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	infos, err := f.Readdir(0)
 	if err != nil {
 		return err
 	}
 	for _, info := range infos {
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			continue
-		}
 		name := path.Join(root, info.Name())
 		if info.IsDir() {
 			ShowDirCacheInfos(name)

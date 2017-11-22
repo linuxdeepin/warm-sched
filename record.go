@@ -34,31 +34,37 @@ func (info FileCacheInfo) Percentage() float32 {
 	return 100 * float32(c) / float32(len(info.InCache))
 }
 
+func isNormalFile(info os.FileInfo) bool {
+	mode := info.Mode()
+	if mode&os.ModeType != 0 {
+		return false
+	}
+	if info.Size() == 0 {
+		return false
+	}
+	return true
+}
+
 func FileMincore(fname string) (FileCacheInfo, error) {
 	fname, err := filepath.Abs(fname)
 	if err != nil {
 		return ZeroFileInfo, err
 	}
+	info, err := os.Stat(fname)
+	if err != nil {
+		return ZeroFileInfo, err
+	}
+	if !isNormalFile(info) {
+		return ZeroFileInfo, nil
+	}
+	size := info.Size()
+
 	f, err := os.Open(fname)
 	if err != nil {
 		return ZeroFileInfo, err
 	}
 	defer f.Close()
 
-	info, err := f.Stat()
-	if err != nil {
-		return ZeroFileInfo, err
-	}
-	if info.IsDir() {
-		return ZeroFileInfo, nil
-	}
-
-	size := info.Size()
-
-	//skip could not mmap error when the file size is 0
-	if int(size) == 0 {
-		return ZeroFileInfo, nil
-	}
 	// mmap is a []byte
 	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
