@@ -17,7 +17,7 @@ var ZeroFileInfo = FileCacheInfo{}
 
 func (info FileCacheInfo) String() string {
 	per := info.Percentage()
-	return fmt.Sprintf("%.0fKB %0.1f%% %s",
+	return fmt.Sprintf("%.0fKB\t%0.1f%%\t%s",
 		per*float32(len(info.InCache)*os.Getpagesize())/1024/100,
 		per,
 		info.FName,

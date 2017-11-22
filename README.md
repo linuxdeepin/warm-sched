@@ -27,3 +27,16 @@
 2. [ ] 实验分析在哪个阶段进行预热更合适．
 3. [ ] 根据实际可用内存大小预热价值更高的文件．需要采用计数等方式统计出价值更高的文件．
 4. [ ] 根据实际分析，清理进入桌面后明显不会被用到的Cache(比如plymouth等), 辅助kernel进行调度.
+
+# 样本数据
+
+[样本数据](./sample.list)
+是在deepin 15.4.1 刚进入桌面后启动deepin-terminal后收集
+`./warm-sched /bin /etc /boot /lib /lib32 /lib64 /libx32 /opt /sbin /srv /usr /var | sort -hr`
+后生成
+第一列为对应文件实际使用的RAM, 第二列为占用RAM与文件大小的比例，第三列为文件路径．
+
+从样本数据可以发现一些　[问题](https://github.com/snyh/warm-sched/issues)
+
+注意: 这些只是Page Cache的使用情况, 在内存压力较大时，只要最近没有访问，且是干净的(没修改过)，
+那么在换页时的代价是非常小的．
