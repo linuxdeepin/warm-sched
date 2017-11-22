@@ -16,9 +16,10 @@ type FileCacheInfo struct {
 var ZeroFileInfo = FileCacheInfo{}
 
 func (info FileCacheInfo) String() string {
-	return fmt.Sprintf("%0.1f%% of %dKB %s",
-		info.Percentage(),
-		len(info.InCache)*os.Getpagesize()/1024,
+	per := info.Percentage()
+	return fmt.Sprintf("%.0fKB %0.1f%% %s",
+		per*float32(len(info.InCache)*os.Getpagesize())/1024/100,
+		per,
 		info.FName,
 	)
 }

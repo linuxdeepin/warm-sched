@@ -20,7 +20,7 @@ func main() {
 	for _, f := range os.Args[1:] {
 		e := T(f)
 		if e != nil {
-			fmt.Println("E:", e)
+			fmt.Fprintln(os.Stderr, "E:", e)
 		}
 	}
 }
