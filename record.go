@@ -21,11 +21,11 @@ const GB = 1024 * MB
 
 func humanSize(s int) string {
 	if s > GB {
-		return fmt.Sprintf("%0.2fGB", float32(s)/float32(GB))
+		return fmt.Sprintf("%0.2fG", float32(s)/float32(GB))
 	} else if s > MB {
-		return fmt.Sprintf("%0.1fMB", float32(s)/float32(MB))
+		return fmt.Sprintf("%0.1fM", float32(s)/float32(MB))
 	} else if s > KB {
-		return fmt.Sprintf("%0.0fKB", float32(s)/float32(KB))
+		return fmt.Sprintf("%0.0fK", float32(s)/float32(KB))
 	} else {
 		return fmt.Sprintf("%dB", s)
 	}

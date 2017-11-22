@@ -32,8 +32,11 @@
 
 [样本数据](./sample.list)
 是在deepin 15.4.1 刚进入桌面后启动deepin-terminal后收集
+
 `./warm-sched /bin /etc /boot /lib /lib32 /lib64 /libx32 /opt /sbin /srv /usr /var | sort -hr`
+
 后生成
+
 第一列为对应文件实际使用的RAM, 第二列为占用RAM与文件大小的比例，第三列为文件路径．
 
 从样本数据可以发现一些　[问题](https://github.com/snyh/warm-sched/issues)

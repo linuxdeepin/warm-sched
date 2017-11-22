@@ -18,15 +18,13 @@ func ConsumePrint(ch <-chan FileCacheInfo) {
 			fmt.Println(info)
 		}
 	}
-	if usedFile > 0 {
-		fmt.Fprintf(os.Stderr, "---------------Total--------------\n")
-		fmt.Fprintf(os.Stderr, "Size: %s/%s\t Number: %d/%d\n",
-			humanSize(totalRAMSize),
-			humanSize(totalFileSize),
-			usedFile,
-			totalFile,
-		)
-	}
+
+	fmt.Printf("%s\t%d%%\t%s",
+		humanSize(totalRAMSize),
+		totalRAMSize*100/totalFileSize,
+		fmt.Sprintf("%d/%d (used files/total files) [THIS LINE IS FOR SUMMARY]\n", usedFile, totalFile),
+	)
+
 }
 
 func main() {
