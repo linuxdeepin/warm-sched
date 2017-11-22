@@ -50,7 +50,7 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 	if err != nil {
 		return ZeroFileInfo, err
 	}
-	info, err := os.Stat(fname)
+	info, err := os.Lstat(fname)
 	if err != nil {
 		return ZeroFileInfo, err
 	}
