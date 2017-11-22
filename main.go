@@ -11,18 +11,18 @@ func ConsumePrint(ch <-chan FileCacheInfo) {
 
 	for info := range ch {
 		totalFile++
-		totalFileSize += len(info.InCache) * PageSize
+		totalFileSize += info.FileSize()
 		if info.InN > 0 {
 			usedFile++
-			totalRAMSize += info.InN * PageSize
+			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}
 	}
 	if usedFile > 0 {
 		fmt.Fprintf(os.Stderr, "---------------Total--------------\n")
-		fmt.Fprintf(os.Stderr, "Size: %0.2fMB/%0.2fMB\t Number: %d/%d\n",
-			float32(totalRAMSize)/float32(MB),
-			float32(totalFileSize)/float32(MB),
+		fmt.Fprintf(os.Stderr, "Size: %s/%s\t Number: %d/%d\n",
+			humanSize(totalRAMSize),
+			humanSize(totalFileSize),
 			usedFile,
 			totalFile,
 		)

@@ -17,14 +17,27 @@ type FileCacheInfo struct {
 
 const KB = 1024
 const MB = 1024 * KB
+const GB = 1024 * MB
+
+func humanSize(s int) string {
+	if s > GB {
+		return fmt.Sprintf("%0.2fGB", float32(s)/float32(GB))
+	} else if s > MB {
+		return fmt.Sprintf("%0.1fMB", float32(s)/float32(MB))
+	} else if s > KB {
+		return fmt.Sprintf("%0.0fKB", float32(s)/float32(KB))
+	} else {
+		return fmt.Sprintf("%dB", s)
+	}
+}
 
 var ZeroFileInfo = FileCacheInfo{}
 var PageSize = os.Getpagesize()
 var PageSizeKB = os.Getpagesize() / KB
 
 func (info FileCacheInfo) String() string {
-	return fmt.Sprintf("%dKB\t%d%%\t%s",
-		info.InN*PageSizeKB,
+	return fmt.Sprintf("%s\t%d%%\t%s",
+		humanSize(info.RAMSize()),
 		info.Percentage(),
 		info.FName,
 	)
@@ -36,6 +49,12 @@ func (info FileCacheInfo) Percentage() int {
 		return 0
 	}
 	return info.InN * 100 / n
+}
+func (info FileCacheInfo) RAMSize() int {
+	return info.InN * PageSize
+}
+func (info FileCacheInfo) FileSize() int {
+	return len(info.InCache) * PageSize
 }
 
 func isNormalFile(info os.FileInfo) bool {
