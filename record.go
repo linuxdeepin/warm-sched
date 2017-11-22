@@ -165,7 +165,7 @@ func Produce(ch chan<- FileCacheInfo, dirs []string) {
 	for _, f := range dirs {
 		info, err := os.Lstat(f)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid Args %v", err)
+			fmt.Fprintf(os.Stderr, "Invalid Args %v\n", err)
 			return
 		}
 		if info.IsDir() {

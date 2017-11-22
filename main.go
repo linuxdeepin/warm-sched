@@ -19,11 +19,13 @@ func ConsumePrint(ch <-chan FileCacheInfo) {
 		}
 	}
 
-	fmt.Printf("%s\t%d%%\t%s",
-		humanSize(totalRAMSize),
-		totalRAMSize*100/totalFileSize,
-		fmt.Sprintf("%d/%d (used files/total files) [THIS LINE IS FOR SUMMARY]\n", usedFile, totalFile),
-	)
+	if totalFileSize > 0 {
+		fmt.Printf("%s\t%d%%\t%s",
+			humanSize(totalRAMSize),
+			totalRAMSize*100/totalFileSize,
+			fmt.Sprintf("%d/%d (used files/total files) [THIS LINE IS FOR SUMMARY]\n", usedFile, totalFile),
+		)
+	}
 
 }
 
