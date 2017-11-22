@@ -3,45 +3,40 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 )
 
-func ShowFileCacheInfo(fname string) error {
-	info, err := FileMincore(fname)
-	if err != nil {
-		return err
-	}
-	if info.Percentage() > 0 {
-		fmt.Println(info)
-	}
-	return nil
-}
-func ShowDirCacheInfos(root string) error {
-	f, err := os.Open(root)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	infos, err := f.Readdir(0)
-	if err != nil {
-		return err
-	}
-	for _, info := range infos {
-		name := path.Join(root, info.Name())
-		if info.IsDir() {
-			ShowDirCacheInfos(name)
-		} else {
-			ShowFileCacheInfo(name)
+func ConsumePrint(ch <-chan FileCacheInfo) {
+	var totalRAMSize, totalFileSize int
+	var totalFile, usedFile int
+
+	for info := range ch {
+		totalFile++
+		totalFileSize += len(info.InCache) * PageSize
+		if info.InN > 0 {
+			usedFile++
+			totalRAMSize += info.InN * PageSize
+			fmt.Println(info)
 		}
 	}
-	return nil
+	if usedFile > 0 {
+		fmt.Fprintf(os.Stderr, "---------------Total--------------\n")
+		fmt.Fprintf(os.Stderr, "Size: %0.2fMB/%0.2fMB\t Number: %d/%d\n",
+			float32(totalRAMSize)/float32(MB),
+			float32(totalFileSize)/float32(MB),
+			usedFile,
+			totalFile,
+		)
+	}
 }
 
 func main() {
-	for _, f := range os.Args[1:] {
-		e := ShowDirCacheInfos(f)
-		if e != nil {
-			fmt.Fprintln(os.Stderr, "E:", e)
-		}
+	ch := make(chan FileCacheInfo)
+
+	if len(os.Args) == 1 {
+		go Produce(ch, []string{"."})
+	} else {
+		go Produce(ch, os.Args[1:])
 	}
+
+	ConsumePrint(ch)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/sys/unix"
 	"os"
+	"path"
 	"path/filepath"
 	"unsafe"
 )
@@ -11,27 +12,30 @@ import (
 type FileCacheInfo struct {
 	FName   string
 	InCache []bool
+	InN     int
 }
 
+const KB = 1024
+const MB = 1024 * KB
+
 var ZeroFileInfo = FileCacheInfo{}
+var PageSize = os.Getpagesize()
+var PageSizeKB = os.Getpagesize() / KB
 
 func (info FileCacheInfo) String() string {
-	per := info.Percentage()
-	return fmt.Sprintf("%.0fKB\t%0.1f%%\t%s",
-		per*float32(len(info.InCache)*os.Getpagesize())/1024/100,
-		per,
+	return fmt.Sprintf("%dKB\t%d%%\t%s",
+		info.InN*PageSizeKB,
+		info.Percentage(),
 		info.FName,
 	)
 }
 
-func (info FileCacheInfo) Percentage() float32 {
-	var c int
-	for _, i := range info.InCache {
-		if i {
-			c++
-		}
+func (info FileCacheInfo) Percentage() int {
+	n := len(info.InCache)
+	if n == 0 {
+		return 0
 	}
-	return 100 * float32(c) / float32(len(info.InCache))
+	return info.InN * 100 / n
 }
 
 func isNormalFile(info os.FileInfo) bool {
@@ -90,8 +94,10 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 
 	mc := make([]bool, vecsz)
 
+	inCache := 0
 	for i, b := range vec {
 		if b%2 == 1 {
+			inCache++
 			mc[i] = true
 		} else {
 			mc[i] = false
@@ -101,5 +107,55 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 	return FileCacheInfo{
 		FName:   fname,
 		InCache: mc,
+		InN:     inCache,
 	}, nil
+}
+
+func ShowFileCacheInfo(fname string, ch chan<- FileCacheInfo) error {
+	info, err := FileMincore(fname)
+	if err != nil {
+		return err
+	}
+	ch <- info
+	return nil
+}
+
+func ShowDirCacheInfos(root string, ch chan<- FileCacheInfo) error {
+	f, err := os.Open(root)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	infos, err := f.Readdir(0)
+	if err != nil {
+		return err
+	}
+	for _, info := range infos {
+		name := path.Join(root, info.Name())
+		if info.IsDir() {
+			ShowDirCacheInfos(name, ch)
+		} else {
+			ShowFileCacheInfo(name, ch)
+		}
+	}
+	return nil
+}
+
+func Produce(ch chan<- FileCacheInfo, dirs []string) {
+	defer close(ch)
+	for _, f := range dirs {
+		info, err := os.Lstat(f)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid Args %v", err)
+			return
+		}
+		if info.IsDir() {
+			err = ShowDirCacheInfos(f, ch)
+		} else {
+			err = ShowFileCacheInfo(f, ch)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "E:", err)
+		}
+	}
 }
