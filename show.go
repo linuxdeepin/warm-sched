@@ -27,7 +27,7 @@ func consumePrint(ch <-chan FileCacheInfo, dirs []string) {
 		}
 	}
 
-	if totalFileSize > 0 {
+	if totalUsedFileSize > 0 {
 		fmt.Printf("%s\t%d%%\t%s",
 			humanSize(totalRAMSize),
 			totalRAMSize*100/totalUsedFileSize,

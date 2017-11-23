@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -157,4 +159,39 @@ func Produce(ch chan<- FileCacheInfo, dirs []string) {
 			fmt.Fprintln(os.Stderr, "E:", err)
 		}
 	}
+}
+
+const (
+	AdviseLoad = unix.FADV_WILLNEED
+	AdviseDrop = unix.FADV_DONTNEED
+)
+
+func FAdvise(fname string, action int) error {
+	if debug {
+		{
+			fmt.Println("------------BEFORE PRELOAD-----------")
+			ShowRAMUsage([]string{fname})
+		}
+		defer func() {
+			time.Sleep(time.Millisecond * 400)
+			fmt.Println("------------AFTER PRELOAD------------")
+			ShowRAMUsage([]string{fname})
+		}()
+	}
+
+	var finfo syscall.Stat_t
+	syscall.Stat(fname, &finfo)
+
+	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(fd)
+
+	size := finfo.Size
+	err = unix.Fadvise(fd, 0, size, action)
+	if err != nil {
+		fmt.Println("E:", err)
+	}
+	return nil
 }
