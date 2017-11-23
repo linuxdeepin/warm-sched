@@ -2,23 +2,26 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 func ShowRAMUsage(dirs []string) {
 	ch := make(chan FileCacheInfo)
 	go Produce(ch, dirs)
-	consumePrint(ch)
+	consumePrint(ch, dirs)
 }
 
-func consumePrint(ch <-chan FileCacheInfo) {
-	var totalRAMSize, totalFileSize int
+func consumePrint(ch <-chan FileCacheInfo, dirs []string) {
+	var totalRAMSize, totalFileSize, totalUsedFileSize int
 	var totalFile, usedFile int
 
 	for info := range ch {
 		totalFile++
-		totalFileSize += info.FileSize()
+		s := info.FileSize()
+		totalFileSize += s
 		if info.InN > 0 {
 			usedFile++
+			totalUsedFileSize += s
 			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}
@@ -27,8 +30,11 @@ func consumePrint(ch <-chan FileCacheInfo) {
 	if totalFileSize > 0 {
 		fmt.Printf("%s\t%d%%\t%s",
 			humanSize(totalRAMSize),
-			totalRAMSize*100/totalFileSize,
-			fmt.Sprintf("%d/%d (used files/total files) [THIS LINE IS FOR SUMMARY]\n", usedFile, totalFile),
+			totalRAMSize*100/totalUsedFileSize,
+			fmt.Sprintf("[FOR %q FILES USED/TOTAL: %d/%d]\n",
+				strings.Join(dirs, ","),
+				usedFile, totalFile,
+			),
 		)
 	}
 }
