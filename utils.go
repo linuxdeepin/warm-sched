@@ -24,8 +24,14 @@ func humanSize(s int) string {
 	}
 }
 
+func RoundPageSize(s int64) int64 {
+	n := (s + PageSize64 - 1) / PageSize64
+	return n * PageSize64
+}
+
 var ZeroFileInfo = FileCacheInfo{}
 var PageSize = os.Getpagesize()
+var PageSize64 = int64(PageSize)
 var PageSizeKB = os.Getpagesize() / KB
 
 func SystemMemoryInfo() int64 {

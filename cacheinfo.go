@@ -11,6 +11,30 @@ import (
 	"unsafe"
 )
 
+type MemRange struct {
+	Offset int64
+	Length int64
+}
+
+func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
+	var s int64
+	var offset int64 = -1
+	for i, v := range vec {
+		if v && offset < 0 {
+			offset = int64(i) * pageSize
+		}
+		if !v && offset > 0 {
+			return MemRange{offset, s - offset}, vec[i+1:]
+		}
+		s += pageSize
+	}
+	return MemRange{offset, 0}, nil
+}
+
+func ToRanges(vec []bool, pageSize int64) []MemRange {
+	panic("Not Implement.")
+}
+
 type FileCacheInfo struct {
 	FName   string
 	InCache []bool
@@ -70,16 +94,12 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 	}
 	defer f.Close()
 
-	// mmap is a []byte
 	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
 		return ZeroFileInfo, fmt.Errorf("could not mmap %s: %v", fname, err)
 	}
-	// TODO: check for MAP_FAILED which is ((void *) -1)
-	// but maybe unnecessary since it looks like errno is always set when MAP_FAILED
 
-	// one byte per page, only LSB is used, remainder is reserved and clear
-	vecsz := (size + int64(os.Getpagesize()) - 1) / int64(os.Getpagesize())
+	vecsz := (size + PageSize64 - 1) / PageSize64
 	vec := make([]byte, vecsz)
 
 	// get all of the arguments to the mincore syscall converted to uintptr
@@ -166,19 +186,40 @@ const (
 	AdviseDrop = unix.FADV_DONTNEED
 )
 
-func FAdvise(fname string, action int) error {
+func wrapDoFiles(files []string, fn func(files []string)) {
 	if debug {
-		{
-			fmt.Println("------------BEFORE PRELOAD-----------")
-			ShowRAMUsage([]string{fname})
-		}
-		defer func() {
-			time.Sleep(time.Millisecond * 400)
-			fmt.Println("------------AFTER PRELOAD------------")
-			ShowRAMUsage([]string{fname})
-		}()
-	}
+		fmt.Println("------------BEFORE PRELOAD-----------")
+		ShowRAMUsage(files)
 
+		fn(files)
+
+		time.Sleep(time.Millisecond * 400)
+		fmt.Println("------------AFTER PRELOAD------------")
+		ShowRAMUsage(files)
+	} else {
+		fn(files)
+	}
+}
+
+func LoadFiles(files []string) {
+	wrapDoFiles(files, loadFiles)
+}
+func DropFiles(files []string) {
+	wrapDoFiles(files, dropFiles)
+}
+
+func loadFiles(files []string) {
+	for _, file := range files {
+		FAdvise(file, AdviseLoad)
+	}
+}
+func dropFiles(files []string) {
+	for _, file := range files {
+		FAdvise(file, AdviseDrop)
+	}
+}
+
+func FAdvise(fname string, action int) error {
 	var finfo syscall.Stat_t
 	syscall.Stat(fname, &finfo)
 
@@ -188,7 +229,8 @@ func FAdvise(fname string, action int) error {
 	}
 	defer syscall.Close(fd)
 
-	size := finfo.Size
+	size := RoundPageSize(finfo.Size)
+
 	err = unix.Fadvise(fd, 0, size, action)
 	if err != nil {
 		fmt.Println("E:", err)

@@ -24,9 +24,9 @@ func main() {
 
 	switch {
 	case load:
-		FAdvise(files[0], AdviseLoad)
+		LoadFiles(files)
 	case drop:
-		FAdvise(files[0], AdviseDrop)
+		DropFiles(files)
 	default:
 		ShowRAMUsage(files)
 	}
