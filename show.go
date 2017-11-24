@@ -5,13 +5,13 @@ import (
 	"strings"
 )
 
-func ShowRAMUsage(dirs []string) {
+func ShowRAMUsage(dirs []string) error {
 	ch := make(chan FileCacheInfo)
 	go Produce(ch, dirs)
-	consumePrint(ch, dirs)
+	return consumePrint(ch, dirs)
 }
 
-func consumePrint(ch <-chan FileCacheInfo, dirs []string) {
+func consumePrint(ch <-chan FileCacheInfo, dirs []string) error {
 	var totalRAMSize, totalFileSize, totalUsedFileSize int
 	var totalFile, usedFile int
 
@@ -37,4 +37,5 @@ func consumePrint(ch <-chan FileCacheInfo, dirs []string) {
 			),
 		)
 	}
+	return nil
 }

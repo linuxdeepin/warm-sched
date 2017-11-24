@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 )
 
 var debug = false
@@ -9,9 +11,16 @@ var debug = false
 func main() {
 	var load bool
 	var drop bool
+	var takeS, loadS bool
+	var out string
+
 	flag.BoolVar(&load, "l", false, "preload files")
 	flag.BoolVar(&drop, "d", false, "drop files")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
+	flag.BoolVar(&takeS, "take", false, "take a snapshot")
+	flag.BoolVar(&loadS, "load", false, "load the snapshot")
+	flag.StringVar(&out, "out", "/dev/shm/hh", "the file name for snapshot")
+
 	flag.Parse()
 
 	var files []string
@@ -22,12 +31,20 @@ func main() {
 		files = flag.Args()
 	}
 
+	var err error
 	switch {
+	case takeS:
+		err = TakeSnapshot(files, out)
+	case loadS:
+		err = LoadSnapshot(out)
 	case load:
-		LoadFiles(files)
+		err = LoadFiles(files)
 	case drop:
-		DropFiles(files)
+		err = DropFiles(files)
 	default:
-		ShowRAMUsage(files)
+		err = ShowRAMUsage(files)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "E:", err)
 	}
 }

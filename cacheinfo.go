@@ -15,6 +15,9 @@ type FileCacheInfo struct {
 	FName   string
 	InCache []bool
 	InN     int
+
+	inode uint64
+	dev   uint64
 }
 
 func (info FileCacheInfo) String() string {
@@ -39,12 +42,12 @@ func (info FileCacheInfo) FileSize() int {
 	return len(info.InCache) * PageSize
 }
 
-func isNormalFile(info os.FileInfo) bool {
-	mode := info.Mode()
-	if mode&os.ModeType != 0 {
+func isNormalFile(info syscall.Stat_t) bool {
+	mode := info.Mode
+	if os.FileMode(mode)&os.ModeType != 0 {
 		return false
 	}
-	if info.Size() == 0 {
+	if info.Size == 0 {
 		return false
 	}
 	return true
@@ -55,14 +58,14 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 	if err != nil {
 		return ZeroFileInfo, err
 	}
-	info, err := os.Lstat(fname)
-	if err != nil {
+	var info syscall.Stat_t
+	if err := syscall.Lstat(fname, &info); err != nil {
 		return ZeroFileInfo, err
 	}
 	if !isNormalFile(info) {
 		return ZeroFileInfo, nil
 	}
-	size := info.Size()
+	size := info.Size
 
 	f, err := os.Open(fname)
 	if err != nil {
@@ -105,6 +108,9 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 		FName:   fname,
 		InCache: mc,
 		InN:     inCache,
+
+		dev:   info.Dev,
+		inode: info.Ino,
 	}, nil
 }
 
@@ -177,11 +183,13 @@ func wrapDoFiles(files []string, fn func(files []string)) {
 	}
 }
 
-func LoadFiles(files []string) {
+func LoadFiles(files []string) error {
 	wrapDoFiles(files, loadFiles)
+	return nil
 }
-func DropFiles(files []string) {
+func DropFiles(files []string) error {
 	wrapDoFiles(files, dropFiles)
+	return nil
 }
 
 func loadFiles(files []string) {
@@ -214,7 +222,7 @@ func fadvise(fd int, rs []MemRange, action int) error {
 	for _, r := range rs {
 		err := unix.Fadvise(fd, r.Offset, r.Length, action)
 		if err != nil {
-			fmt.Println("E:", err)
+			return err
 		}
 	}
 	return nil
