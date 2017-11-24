@@ -11,30 +11,6 @@ import (
 	"unsafe"
 )
 
-type MemRange struct {
-	Offset int64
-	Length int64
-}
-
-func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
-	var s int64
-	var offset int64 = -1
-	for i, v := range vec {
-		if v && offset < 0 {
-			offset = int64(i) * pageSize
-		}
-		if !v && offset > 0 {
-			return MemRange{offset, s - offset}, vec[i+1:]
-		}
-		s += pageSize
-	}
-	return MemRange{offset, 0}, nil
-}
-
-func ToRanges(vec []bool, pageSize int64) []MemRange {
-	panic("Not Implement.")
-}
-
 type FileCacheInfo struct {
 	FName   string
 	InCache []bool
@@ -210,30 +186,36 @@ func DropFiles(files []string) {
 
 func loadFiles(files []string) {
 	for _, file := range files {
-		FAdvise(file, AdviseLoad)
+		FAdvise(file, nil, AdviseLoad)
 	}
 }
 func dropFiles(files []string) {
 	for _, file := range files {
-		FAdvise(file, AdviseDrop)
+		FAdvise(file, nil, AdviseDrop)
 	}
 }
 
-func FAdvise(fname string, action int) error {
-	var finfo syscall.Stat_t
-	syscall.Stat(fname, &finfo)
-
+func FAdvise(fname string, rs []MemRange, action int) error {
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0755)
 	if err != nil {
 		return err
 	}
 	defer syscall.Close(fd)
 
-	size := RoundPageSize(finfo.Size)
+	if len(rs) == 0 {
+		var finfo syscall.Stat_t
+		syscall.Stat(fname, &finfo)
+		rs = append(rs, MemRange{0, RoundPageSize(finfo.Size)})
+	}
+	return fadvise(fd, rs, action)
+}
 
-	err = unix.Fadvise(fd, 0, size, action)
-	if err != nil {
-		fmt.Println("E:", err)
+func fadvise(fd int, rs []MemRange, action int) error {
+	for _, r := range rs {
+		err := unix.Fadvise(fd, r.Offset, r.Length, action)
+		if err != nil {
+			fmt.Println("E:", err)
+		}
 	}
 	return nil
 }
