@@ -213,7 +213,11 @@ func FAdvise(fname string, rs []MemRange, action int) error {
 	if len(rs) == 0 {
 		var finfo syscall.Stat_t
 		syscall.Stat(fname, &finfo)
-		rs = append(rs, MemRange{0, RoundPageSize(finfo.Size)})
+		if action == AdviseLoad {
+			rs = FullRanges(finfo.Size)
+		} else {
+			rs = append(rs, MemRange{0, RoundPageSize(finfo.Size)})
+		}
 	}
 	return fadvise(fd, rs, action)
 }

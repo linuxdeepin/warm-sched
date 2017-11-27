@@ -5,6 +5,8 @@ type MemRange struct {
 	Length int64
 }
 
+var MaxAdviseSize = int64(128 * KB)
+
 func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
 	var s int64
 	var offset int64 = -1
@@ -15,9 +17,27 @@ func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
 		if !v && offset > 0 {
 			return MemRange{offset, s - offset}, vec[i:]
 		}
+
+		length := s - offset
 		s += pageSize
+		if length >= MaxAdviseSize {
+			return MemRange{offset, length}, vec[i:]
+		}
+
 	}
 	return MemRange{offset, s - offset}, nil
+}
+
+func FullRanges(fileSize int64) []MemRange {
+	n := (fileSize + MaxAdviseSize - 1) / MaxAdviseSize
+	var ret []MemRange
+	for i := 0; i < int(n); i++ {
+		ret = append(ret, MemRange{
+			Offset: int64(i) * MaxAdviseSize,
+			Length: MaxAdviseSize,
+		})
+	}
+	return ret
 }
 
 func ToRanges(vec []bool, pageSize int64) []MemRange {

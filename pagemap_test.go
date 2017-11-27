@@ -13,6 +13,8 @@ func TestBitsToMemRange(t *testing.T) {
 	r3 := MemRange{ps * 8, ps * 1}
 	rr := []MemRange{r1, r2, r3}
 
+	MaxAdviseSize = int64(12 * KB)
+
 	r, _ := toRange(vec, ps)
 	if !reflect.DeepEqual(r1, r) {
 		t.Fatalf("%+v is not equal %+v\n", r1, r)
