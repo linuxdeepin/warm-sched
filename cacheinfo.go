@@ -16,8 +16,9 @@ type FileCacheInfo struct {
 	InCache []bool
 	InN     int
 
-	inode uint64
-	dev   uint64
+	inode  uint64
+	dev    uint64
+	sector uint64
 }
 
 func (info FileCacheInfo) String() string {
@@ -103,15 +104,30 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 			mc[i] = false
 		}
 	}
+	var sector = uint64(0)
+	if inCache > 0 {
+		sector = GetSectorNumber(f.Fd())
+	}
 
 	return FileCacheInfo{
 		FName:   fname,
 		InCache: mc,
 		InN:     inCache,
 
-		dev:   info.Dev,
-		inode: info.Ino,
+		dev:    info.Dev,
+		inode:  info.Ino,
+		sector: sector,
 	}, nil
+}
+
+func GetSectorNumber(fd uintptr) uint64 {
+	b := 0
+	const FIBMAP = 1
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), FIBMAP, uintptr(unsafe.Pointer(&b)))
+	if err != 0 {
+		fmt.Println("E:", err)
+	}
+	return uint64(b)
 }
 
 func ShowFileCacheInfo(fname string, ch chan<- FileCacheInfo) error {
@@ -201,6 +217,30 @@ func dropFiles(files []string) {
 	for _, file := range files {
 		FAdvise(file, nil, AdviseDrop)
 	}
+}
+
+func Readahead(fname string, rs []MemRange) error {
+	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(fd)
+
+	if len(rs) == 0 {
+		var finfo syscall.Stat_t
+		syscall.Stat(fname, &finfo)
+		rs = FullRanges(finfo.Size)
+	}
+	for _, r := range rs {
+		_, _, e := syscall.Syscall(syscall.SYS_READAHEAD,
+			uintptr(fd),
+			uintptr(r.Offset),
+			uintptr(r.Length))
+		if e != 0 {
+			fmt.Println("E:", e)
+		}
+	}
+	return nil
 }
 
 func FAdvise(fname string, rs []MemRange, action int) error {

@@ -19,8 +19,9 @@ func (s *Snapshot) Len() int {
 }
 func (s *Snapshot) Less(i, j int) bool {
 	a, b := s.infos[i], s.infos[j]
+
 	if a.dev == b.dev {
-		return a.inode < b.inode
+		return a.sector < b.sector
 	}
 	return a.dev < b.dev
 }
@@ -45,7 +46,7 @@ func TakeSnapshot(dirs []string, fname string) error {
 	return snap.SaveTo(fname)
 }
 
-func LoadSnapshot(fname string) error {
+func LoadSnapshot(fname string, wait bool) error {
 	f, err := os.Open(fname)
 	if err != nil {
 		return err
@@ -56,7 +57,12 @@ func LoadSnapshot(fname string) error {
 		return err
 	}
 	for _, i := range snap {
-		err := FAdvise(i.Name, i.Ranges, AdviseLoad)
+		var err error
+		if wait {
+			err = Readahead(i.Name, i.Ranges)
+		} else {
+			err = FAdvise(i.Name, i.Ranges, AdviseLoad)
+		}
 		if debug {
 			fmt.Printf("%+v --> %v\n", i, err)
 		}
@@ -78,6 +84,7 @@ func (s *Snapshot) SaveTo(fname string) error {
 	var ret []SnapshotItem
 	for _, i := range s.infos {
 		ret = append(ret, SnapshotItem{i.FName, ToRanges(i.InCache, PageSize64)})
+		fmt.Printf("%d %s\n", i.sector, i.FName)
 	}
 
 	return gob.NewEncoder(f).Encode(ret)
