@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 )
 
@@ -46,7 +47,15 @@ func TakeSnapshot(dirs []string, fname string) error {
 	return snap.SaveTo(fname)
 }
 
-func LoadSnapshot(fname string, wait bool) error {
+func ShowPlymouthMessage(msg string) {
+	cmd := exec.Command("plymouth", "display-message", msg)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("PLY:%v %v\n", err, cmd.Args)
+	}
+}
+
+func LoadSnapshot(fname string, wait bool, ply bool) error {
 	f, err := os.Open(fname)
 	if err != nil {
 		return err
@@ -56,15 +65,20 @@ func LoadSnapshot(fname string, wait bool) error {
 	if err != nil {
 		return err
 	}
-	for _, i := range snap {
+
+	n := len(snap)/10 + 1
+	for i, r := range snap {
+		if ply && i%n == 0 {
+			go ShowPlymouthMessage(fmt.Sprintf(`--text=%s -- %d%%`, r.Name, i*10/n))
+		}
 		var err error
 		if wait {
-			err = Readahead(i.Name, i.Ranges)
+			err = Readahead(r.Name, r.Ranges)
 		} else {
-			err = FAdvise(i.Name, i.Ranges, AdviseLoad)
+			err = FAdvise(r.Name, r.Ranges, AdviseLoad)
 		}
 		if debug {
-			fmt.Printf("%+v --> %v\n", i, err)
+			fmt.Printf("%+v --> %v\n", r, err)
 		}
 	}
 	return nil

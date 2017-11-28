@@ -11,7 +11,7 @@ var debug = false
 func main() {
 	var load bool
 	var drop bool
-	var takeS, loadS, wait bool
+	var takeS, loadS, wait, ply bool
 	var out string
 
 	flag.BoolVar(&load, "l", false, "preload files")
@@ -21,6 +21,7 @@ func main() {
 	flag.BoolVar(&loadS, "load", false, "load the snapshot")
 	flag.StringVar(&out, "out", "/dev/shm/hh", "the file name for snapshot")
 	flag.BoolVar(&wait, "wait", true, "wait load completed")
+	flag.BoolVar(&ply, "plymouth", false, "report progress to plymouth")
 
 	flag.Parse()
 
@@ -37,7 +38,7 @@ func main() {
 	case takeS:
 		err = TakeSnapshot(files, out)
 	case loadS:
-		err = LoadSnapshot(out, wait)
+		err = LoadSnapshot(out, wait, ply)
 	case load:
 		err = LoadFiles(files)
 	case drop:
