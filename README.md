@@ -22,11 +22,6 @@
 - cache list的生成, 通过mmap(2) + mincore(2) 扫描/{,usr}/lib, /{,usr}/bin等目录下的文件．
 - cache list的读取, 通过mmap(2) + madvise(2) 进行精准预读．
 
-# 需要调研的事情
-1. [ ] 实验环境下，分析应该对哪些目录进行扫描，以便生成cache list.
-2. [ ] 实验分析在哪个阶段进行预热更合适．
-3. [ ] 根据实际可用内存大小预热价值更高的文件．需要采用计数等方式统计出价值更高的文件．
-4. [ ] 根据实际分析，清理进入桌面后明显不会被用到的Cache(比如plymouth等), 辅助kernel进行调度.
 
 # 样本数据
 
@@ -43,3 +38,23 @@
 
 注意: 这些只是Page Cache的使用情况, 在内存压力较大时，只要最近没有访问，且是干净的(没修改过)，
 那么在换页时的代价是非常小的．
+
+
+# 测试方式
+1. 修改Exec字段后，拷贝warm-sched.service到/etc/systemd/system下
+2. sudo systemctl daemon-reload && sudo systemctl enable warm-sched.service
+3. 调整系统到期望的状态，比如打开chrome或打开控制中心等.
+4. 生成snapshot文件.
+   ```
+   sudo warm-sched -take -out all_sorted_warm /usr /bin /sbin /home /lib32 /lib /opt /usr /var/log/journal
+   ```
+# 需要调研的事情
+1. [ ] 实验环境下，分析应该对哪些目录进行扫描，以便生成cache list.
+2. [ ] 实验分析在哪个阶段进行预热更合适．
+3. [ ] 根据实际可用内存大小预热价值更高的文件．需要采用计数等方式统计出价值更高的文件．
+4. [ ] 根据实际分析，清理进入桌面后明显不会被用到的Cache(比如plymouth等), 辅助kernel进行调度.
+
+# TODO
+1. [ ] 分系统级与用户级阶段加载．分别在sysinit.target和greeter输入密码阶段
+2. [ ] 使用kernel module 或 ebpf等机制 查询某个dentry是否在page cache中
+3. [ ] 文件黑名单
