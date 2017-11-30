@@ -46,7 +46,7 @@
 3. 调整系统到期望的状态，比如打开chrome或打开控制中心等.
 4. 生成snapshot文件.
    ```
-   sudo warm-sched -take -out all_sorted_warm /usr /bin /sbin /home /lib32 /lib /opt /usr /var/log/journal
+   /usr/bin/time -v sudo warm-sched -take -out all_sorted_warm /bin /sbin ~/.config ~/.cache /lib32 /lib /opt /usr /var/log/journal
    ```
 # 需要调研的事情
 1. [ ] 实验环境下，分析应该对哪些目录进行扫描，以便生成cache list.
