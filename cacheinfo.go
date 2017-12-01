@@ -54,6 +54,8 @@ func isNormalFile(info syscall.Stat_t) bool {
 	return true
 }
 
+var RunByRoot = os.Geteuid() == 0
+
 func FileMincore(fname string) (FileCacheInfo, error) {
 	fname, err := filepath.Abs(fname)
 	if err != nil {
@@ -105,7 +107,7 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 		}
 	}
 	var sector = uint64(0)
-	if inCache > 0 {
+	if inCache > 0 && RunByRoot {
 		sector = GetSectorNumber(f.Fd())
 	}
 
