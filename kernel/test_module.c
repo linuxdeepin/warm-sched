@@ -1,20 +1,26 @@
 #include <linux/module.h>
 #include <linux/dcache.h>
+#include <linux/kallsyms.h>
+#include <linux/pagemap.h>
+#include <linux/slab.h>
+#include	<linux/mm.h>
+
+static void is_dentry_in_cache(void);
+
 
 static int test_module_init(void)
 {
-  printk("Test Module Installed\n");
-
+  printk("Test snyh haha Module Installed\n");
+  is_dentry_in_cache();
   return 0;
 }
 
-void is_dentry_in_cache(void)
+
+static void is_dentry_in_cache(void)
 {
-  struct qstr str = {
-    .hash_len = 5,
-    .name = "hehe",
-  };
-  d_lookup(0, &str);
+  char *sym_name = "dentry_cache";
+  //  kmem_cache* unsafe_dentry_cache = kallsyms_lookup_name(sym_name);
+  //  printk("Test found dentry:%p\n", unsafe_dentry_cache);
 }
 
 static void test_module_exit(void)

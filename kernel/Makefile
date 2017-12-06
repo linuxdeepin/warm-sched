@@ -3,7 +3,9 @@ obj-m := test_module.o
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
-all:
+all: build test
+
+build:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD)
 
 clean:
@@ -11,3 +13,9 @@ clean:
 	rm -rf .tmp_versions
 	rm Module.symvers
 	rm modules.order
+
+
+test:
+	@sudo insmod ./test_module.ko
+	@sudo dmesg | tail | grep -i test
+	-@sudo rmmod test_module
