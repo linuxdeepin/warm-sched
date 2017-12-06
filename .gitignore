@@ -1,0 +1,9 @@
+.vagrant
+/warm-sched
+/kernel/*.o
+/kernel/*.cmd
+/kernel/modules.order
+/kernel/Module.symvers
+/kernel/test_module.mod.c
+/kernel/test_module.ko
+kernel/.tmp_versions/
