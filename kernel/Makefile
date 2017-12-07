@@ -17,5 +17,5 @@ clean:
 
 test:
 	@sudo insmod ./test_module.ko
-	@sudo dmesg | tail | grep -i test
+	@sudo dmesg | tail
 	-@sudo rmmod test_module
