@@ -146,6 +146,9 @@ func ShowFileCacheInfo(fname string, ch chan<- FileCacheInfo) error {
 }
 
 func ShowDirCacheInfos(root string, ch chan<- FileCacheInfo) error {
+	if ShouldSkipDirectory(root) {
+		return nil
+	}
 	f, err := os.Open(root)
 	if err != nil {
 		return err
