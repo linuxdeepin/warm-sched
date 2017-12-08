@@ -17,4 +17,4 @@ clean:
 test:
 	-@sudo rmmod test_module
 	@sudo insmod ./test_module.ko
-	cat /proc/snyh123 | less
+	cat /proc/snyh123

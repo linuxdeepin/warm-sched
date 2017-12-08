@@ -57,16 +57,15 @@ static void traver_sb(struct super_block *sb, void *user_data)
 {
   struct timespec begin = CURRENT_TIME;
   struct inode *inode = NULL;
-  unsigned long n1 = 0, n2 = 0;
+  unsigned long n1 = 0;
 
   spin_lock(&sb->s_inode_list_lock);
   list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
     if (dump_inode(inode)) n1++;
   }
   spin_unlock(&sb->s_inode_list_lock);
-  collect_inode_in_lru(sb, &n2);
 
-  seq_printf(SF, "%s\t%ld\t%ld\t", sb->s_id, n1, n2);
+  seq_printf(SF, "%s\t%ld\t", sb->s_id, n1);
   show_time_elapse(begin);
 }
 
@@ -118,8 +117,8 @@ static bool dump_inode(struct inode *inode)
 
   if (SF)
     seq_printf(SF, "%ld\t%ld\t%s\t\n",
-               inode->i_ino,
                inode->i_mapping->nrpages,
+               inode->i_ino,
                dentry_path_raw(d, bufname, sizeof(bufname))
                );
   dput(d);
