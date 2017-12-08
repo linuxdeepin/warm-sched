@@ -14,8 +14,7 @@ clean:
 	rm Module.symvers
 	rm modules.order
 
-
 test:
-	@sudo insmod ./test_module.ko
-	@sudo dmesg | tail
 	-@sudo rmmod test_module
+	@sudo insmod ./test_module.ko
+	cat /proc/snyh123 | less
