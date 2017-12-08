@@ -61,14 +61,16 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 	if err != nil {
 		return ZeroFileInfo, err
 	}
-	var info syscall.Stat_t
-	if err := syscall.Lstat(fname, &info); err != nil {
+
+	info, err := os.Lstat(fname)
+	if err != nil {
 		return ZeroFileInfo, err
 	}
-	if !isNormalFile(info) {
-		return ZeroFileInfo, nil
+	if !info.Mode().IsRegular() {
+		return ZeroFileInfo, err
 	}
-	size := info.Size
+
+	size := info.Size()
 
 	f, err := os.Open(fname)
 	if err != nil {
@@ -111,13 +113,15 @@ func FileMincore(fname string) (FileCacheInfo, error) {
 		sector = GetSectorNumber(f.Fd())
 	}
 
+	sinfo := info.Sys().(*syscall.Stat_t)
+
 	return FileCacheInfo{
 		FName:   fname,
 		InCache: mc,
 		InN:     inCache,
 
-		dev:    info.Dev,
-		inode:  info.Ino,
+		dev:    sinfo.Dev,
+		inode:  sinfo.Ino,
 		sector: sector,
 	}, nil
 }
