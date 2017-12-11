@@ -2,11 +2,9 @@
 #include <linux/dcache.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
-#include <linux/list_lru.h>
 #include <linux/time.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-
 
 static bool dump_inode(struct inode *inode);
 static void traver_sb(struct super_block *sb, void *user_data);
@@ -38,21 +36,6 @@ static const struct file_operations proc_file_fops = {
   .release = single_release,
 };
 
-enum lru_status inode_lru_walk (struct list_head *item, struct list_lru_one *list,
-                                spinlock_t *lock, void *cb_arg)
-{
-  unsigned long *count = cb_arg;
-  struct inode* inode = list_entry(item, struct inode, i_lru);
-  if (dump_inode(inode)) (*count)++;
-  return LRU_SKIP;
-}
-
-void collect_inode_in_lru(struct super_block *sb, unsigned long* count)
-{
-  unsigned long n = 10000000;
-  list_lru_walk(&(sb->s_inode_lru), inode_lru_walk, count, n);
-}
-
 static void traver_sb(struct super_block *sb, void *user_data)
 {
   struct timespec begin = CURRENT_TIME;
@@ -66,7 +49,7 @@ static void traver_sb(struct super_block *sb, void *user_data)
   spin_unlock(&sb->s_inode_list_lock);
 
   seq_printf(SF, "%s\t%ld\t", sb->s_id, n1);
-  show_time_elapse(begin);
+ show_time_elapse(begin);
 }
 
 static void show_time_elapse(struct timespec begin)
@@ -98,17 +81,42 @@ MODULE_AUTHOR("IsonProjects");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Simple Kernel Module");
 
+
+static bool skip_inode(struct inode* inode)
+{
+  spin_lock(&inode->i_lock);
+  if (!S_ISREG(inode->i_mode) || inode->i_mapping->nrpages == 0) {
+    spin_unlock(&inode->i_lock);
+    return true;
+  }
+  spin_unlock(&inode->i_lock);
+  return false;
+}
+
 static bool dump_inode(struct inode *inode)
 {
   struct dentry *d = NULL;
   static char bufname[1024];
+  sector_t bn = 0;
+  size_t ms = 0;
+  loff_t fs = inode_get_bytes(inode);
+  if (fs == 0) {
+    return false;
+  }
+
+  if (skip_inode(inode)) {
+    return false;
+  }
 
   d = d_find_any_alias(inode);
   if (d == 0) {
     return false;
   }
 
+  bn = bmap(inode, 0);
+
   spin_lock(&inode->i_lock);
+  ms = inode->i_mapping->nrpages * PAGE_SIZE;
   if (!S_ISREG(inode->i_mode) || inode->i_mapping->nrpages == 0) {
     spin_unlock(&inode->i_lock);
     dput(d);
@@ -116,9 +124,10 @@ static bool dump_inode(struct inode *inode)
   }
 
   if (SF)
-    seq_printf(SF, "%ld\t%ld\t%s\t\n",
-               inode->i_mapping->nrpages,
-               inode->i_ino,
+    seq_printf(SF, "%zuKB\t%llu%%\t%ld\t%s\n",
+               ms / 1024,
+               (100 * ms / fs),
+               bn,
                dentry_path_raw(d, bufname, sizeof(bufname))
                );
   dput(d);
