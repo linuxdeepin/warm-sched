@@ -5,21 +5,62 @@
 #include <linux/time.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/sched.h>
+#include <linux/fs_struct.h>
+#include <linux/mount.h>
+#include <linux/backing-dev-defs.h>
+#include <linux/genhd.h>
 
-static bool dump_inode(struct inode *inode);
+static bool dump_inode(struct inode *i, struct vfsmount* mnt, const char*);
 static void traver_sb(struct super_block *sb, void *user_data);
 static void show_time_elapse(struct timespec begin);
 
 static struct proc_dir_entry *proc_file_entry;
 static struct seq_file* SF = 0;
 
+static bool is_normal_fs_type(struct vfsmount *mnt)
+{
+  const char* typ = 0;
+  if (mnt == 0 || mnt->mnt_sb == 0 || mnt->mnt_root == 0) {
+    return false;
+  }
+  typ = mnt->mnt_sb->s_type->name;
+  if (strcmp(typ, "ext3") == 0||
+      strcmp(typ, "ext4") == 0||
+      strcmp(typ, "ext2") == 0||
+      strcmp(typ, "fat") == 0||
+      strcmp(typ, "ntfs") == 0) {
+    return true;
+  }
+  return false;
+}
+
+static int traver_vfsmount(struct vfsmount * mnt, void *user_data)
+{
+  struct super_block *sb = mnt->mnt_sb;
+
+  if (mnt->mnt_root == 0) {
+    // TODO: why the mnt->mnt_sb could be a invalid pointer link 0000003d when mnt->mnt_root==0
+    seq_printf(SF, "BAD SB %p %p\n", mnt, sb);
+    return 0;
+  }
+
+  if (is_normal_fs_type(mnt)) {
+    traver_sb(sb, mnt);
+  }
+  return 0;
+}
+
 static int show_proc_content(struct seq_file *filp, void *p)
 {
-  struct file_system_type* t = get_fs_type("ext4");
+  struct path root;
   SF = filp;
-  iterate_supers_type(t, traver_sb, 0);
+
+  get_fs_root(current->fs, &root);
+  iterate_mounts(traver_vfsmount, 0, root.mnt);
+  path_put(&root);
+
   SF = 0;
-  //put_filesystem(t);
   return 0;
 }
 
@@ -38,18 +79,23 @@ static const struct file_operations proc_file_fops = {
 
 static void traver_sb(struct super_block *sb, void *user_data)
 {
+  struct vfsmount* mnt = user_data;
   struct timespec begin = CURRENT_TIME;
-  struct inode *inode = NULL;
+  struct inode *i = NULL;
   unsigned long n1 = 0;
 
+  char bname[1024];
+  bdevname(sb->s_bdev, bname);
+
   spin_lock(&sb->s_inode_list_lock);
-  list_for_each_entry(inode, &sb->s_inodes, i_sb_list) {
-    if (dump_inode(inode)) n1++;
+  list_for_each_entry(i, &sb->s_inodes, i_sb_list) {
+    if (dump_inode(i, mnt, bname)) n1++;
   }
   spin_unlock(&sb->s_inode_list_lock);
 
+
   seq_printf(SF, "%s\t%ld\t", sb->s_id, n1);
- show_time_elapse(begin);
+  show_time_elapse(begin);
 }
 
 static void show_time_elapse(struct timespec begin)
@@ -93,7 +139,7 @@ static bool skip_inode(struct inode* inode)
   return false;
 }
 
-static bool dump_inode(struct inode *inode)
+static bool dump_inode(struct inode *inode, struct vfsmount* mnt, const char* dev_name)
 {
   struct dentry *d = NULL;
   static char bufname[1024];
@@ -123,13 +169,18 @@ static bool dump_inode(struct inode *inode)
     return false;
   }
 
-  if (SF)
-    seq_printf(SF, "%zuKB\t%llu%%\t%ld\t%s\n",
+  if (SF) {
+    struct path r = {
+      .dentry = d,
+      .mnt = mnt,
+    };
+    seq_printf(SF, "%zuKB\t%llu%%\t%s:%ld\t%s\n",
                ms / 1024,
                (100 * ms / fs),
-               bn,
-               dentry_path_raw(d, bufname, sizeof(bufname))
+               dev_name, bn,
+               d_path(&r, bufname, sizeof(bufname))
                );
+  }
   dput(d);
   spin_unlock(&inode->i_lock);
   return true;
