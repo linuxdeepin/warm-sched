@@ -4,6 +4,6 @@
 /kernel/*.cmd
 /kernel/modules.order
 /kernel/Module.symvers
-/kernel/test_module.mod.c
-/kernel/test_module.ko
+/kernel/*.mod.c
+/kernel/*.ko
 kernel/.tmp_versions/
