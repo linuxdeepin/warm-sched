@@ -79,14 +79,14 @@ static const struct file_operations proc_file_fops = {
 static void traver_sb(struct seq_file* sf, struct super_block *sb, void *user_data)
 {
   struct vfsmount* mnt = user_data;
-  struct inode *i = NULL;
+  struct inode *i, *ii = NULL;
   unsigned long n1 = 0;
 
   char bname[1024];
   bdevname(sb->s_bdev, bname);
 
   spin_lock(&sb->s_inode_list_lock);
-  list_for_each_entry(i, &sb->s_inodes, i_sb_list) {
+  list_for_each_entry_safe(i, ii, &sb->s_inodes, i_sb_list) {
     spin_unlock(&sb->s_inode_list_lock);
     if (dump_inode(sf, i, mnt, bname)) n1++;
     spin_lock(&sb->s_inode_list_lock);
@@ -139,7 +139,7 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode, struct vfsmount
   loff_t fs = inode_get_bytes(inode);
   if (fs == 0) {
     return false;
-  }
+ }
 
   if (skip_inode(inode)) {
     return false;
