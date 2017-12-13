@@ -1,26 +1,23 @@
 #include <linux/module.h>
-#include <linux/dcache.h>
 #include <linux/fs.h>
-#include <linux/mm.h>
-#include <linux/time.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
-#include <linux/sched.h>
 #include <linux/fs_struct.h>
 #include <linux/mount.h>
-#include <linux/backing-dev-defs.h>
-#include <linux/genhd.h>
 
-static bool dump_inode(struct seq_file*, struct inode *i, struct vfsmount* mnt, const char*);
+static const char* PROC_NAME = "mincores";
+
+static void dump_mapping(struct seq_file*sf, struct address_space* addr);
+static bool dump_inode(struct seq_file*, struct inode *i);
 static void traver_sb(struct seq_file*, struct super_block *sb, void *user_data);
 
-static bool is_normal_fs_type(struct vfsmount *mnt)
+static bool is_normal_fs_type(struct super_block* sb)
 {
   const char* typ = 0;
-  if (mnt == 0 || mnt->mnt_sb == 0 || mnt->mnt_root == 0) {
+  if (sb == 0 || sb->s_bdev == 0) {
     return false;
   }
-  typ = mnt->mnt_sb->s_type->name;
+  typ = sb->s_type->name;
   if (strcmp(typ, "ext3") == 0||
       strcmp(typ, "ext4") == 0||
       strcmp(typ, "ext2") == 0||
@@ -31,36 +28,21 @@ static bool is_normal_fs_type(struct vfsmount *mnt)
   return false;
 }
 
-static int traver_vfsmount(struct vfsmount * mnt, void *user_data)
-{
-  struct seq_file* filp = user_data;
-  struct super_block *sb = mnt->mnt_sb;
-
-  if (mnt->mnt_root == 0) {
-    // TODO: why the mnt->mnt_sb could be a invalid pointer link 0000003d when mnt->mnt_root==0
-    seq_printf(filp, "BAD SB %p %p %d %d\n", mnt, sb, mnt->mnt_flags,   IS_ERR(sb));
-    return 0;
-  }
-
-  if (is_normal_fs_type(mnt)) {
-    traver_sb(filp, sb, mnt);
-  }
-  return 0;
-}
-
 static int show_proc_content(struct seq_file *filp, void *p)
 {
   struct path root;
-  struct vfsmount *mnt = 0;
+  struct super_block *bs = 0;
 
-  task_lock(current);
-  get_fs_root(current->fs, &root);
-  task_unlock(current);
-
-  iterate_mounts(traver_vfsmount, filp, root.mnt);
+  get_fs_pwd(current->fs, &root);
+  bs = root.mnt->mnt_sb;
   path_put(&root);
 
-  return 0;
+  if (is_normal_fs_type(bs)) {
+    traver_sb(filp, bs, 0);
+    return 0;
+  }
+
+  return -EINVAL;
 }
 
 static int proc_open_callback(struct inode *inode, struct file *filp)
@@ -78,29 +60,20 @@ static const struct file_operations proc_file_fops = {
 
 static void traver_sb(struct seq_file* sf, struct super_block *sb, void *user_data)
 {
-  struct vfsmount* mnt = user_data;
   struct inode *i, *ii = NULL;
-  unsigned long n1 = 0;
-
-  char bname[1024];
-  bdevname(sb->s_bdev, bname);
 
   spin_lock(&sb->s_inode_list_lock);
   list_for_each_entry_safe(i, ii, &sb->s_inodes, i_sb_list) {
     spin_unlock(&sb->s_inode_list_lock);
-    if (dump_inode(sf, i, mnt, bname)) n1++;
+    dump_inode(sf, i);
     spin_lock(&sb->s_inode_list_lock);
   }
   spin_unlock(&sb->s_inode_list_lock);
-
-
-  seq_printf(sf, "%s\t%ld\t", sb->s_id, n1);
 }
 
 static int test_module_init(void)
 {
-  struct proc_dir_entry *proc_file_entry = proc_create("snyh123", 0, NULL, &proc_file_fops);
-  printk("Test snyh haha Module Installed\n");
+  struct proc_dir_entry *proc_file_entry = proc_create(PROC_NAME, 0, NULL, &proc_file_fops);
   if (proc_file_entry == NULL)
     return -ENOMEM;
   return 0;
@@ -108,16 +81,17 @@ static int test_module_init(void)
 
 static void test_module_exit(void)
 {
-  remove_proc_entry("snyh123", NULL);
-  printk("Test Module Removed\n");
+  remove_proc_entry(PROC_NAME, NULL);
 }
 
 module_init(test_module_init);
 module_exit(test_module_exit);
 
-MODULE_AUTHOR("snyh");
+MODULE_AUTHOR("snyh@snyh.org");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Simple Kernel Module");
+MODULE_DESCRIPTION("Dump all file mapping info (according the PWD) from PageCache, See also mincore(2)."
+                   "    Only support ext2/3/4, fat and ntfs format and only support one partition per call."
+                   );
 
 static bool skip_inode(struct inode* inode)
 {
@@ -130,7 +104,29 @@ static bool skip_inode(struct inode* inode)
   return false;
 }
 
-static bool dump_inode(struct seq_file* sf, struct inode *inode, struct vfsmount* mnt, const char* dev_name)
+static void dump_mapping(struct seq_file*sf, struct address_space* addr)
+{
+  void **slot;
+  struct radix_tree_iter iter;
+
+  unsigned long start=0, end = 0, next_start = 0;
+  bool found;
+
+  do {
+    found = false;
+    radix_tree_for_each_contig(slot, &addr->page_tree, &iter, next_start) {
+      end = iter.index;
+      next_start = iter.next_index;
+      found = true;
+    }
+    if (found) {
+      seq_printf(sf, "[%ld:%ld],", start, end);
+      start = next_start;
+    }
+  } while (found);
+}
+
+static bool dump_inode(struct seq_file* sf, struct inode *inode)
 {
   struct dentry *d = NULL;
   static char bufname[1024];
@@ -150,6 +146,8 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode, struct vfsmount
     return false;
   }
 
+
+
   bn = bmap(inode, 0);
 
   spin_lock(&inode->i_lock);
@@ -161,18 +159,14 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode, struct vfsmount
   }
 
 
-  spin_unlock(&inode->i_lock);
-
-  struct path r = {
-    .dentry = d,
-    .mnt = mnt,
-  };
-  seq_printf(sf, "%zuKB\t%llu%%\t%s:%ld\t%s\n",
-             ms / 1024,
-             (100 * ms / fs),
-             dev_name, bn,
-             d_path(&r, bufname, sizeof(bufname))
+  seq_printf(sf, "%ld\t%s\t",
+             bn,
+             dentry_path_raw(d, bufname, sizeof(bufname))
              );
+  dump_mapping(sf, inode->i_mapping);
+  seq_printf(sf, "\n");
+
+  spin_unlock(&inode->i_lock);
   dput(d);
 
   return true;
