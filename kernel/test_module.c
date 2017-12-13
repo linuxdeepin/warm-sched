@@ -14,8 +14,6 @@
 static bool dump_inode(struct seq_file*, struct inode *i, struct vfsmount* mnt, const char*);
 static void traver_sb(struct seq_file*, struct super_block *sb, void *user_data);
 
-static struct proc_dir_entry *proc_file_entry;
-
 static bool is_normal_fs_type(struct vfsmount *mnt)
 {
   const char* typ = 0;
@@ -101,9 +99,8 @@ static void traver_sb(struct seq_file* sf, struct super_block *sb, void *user_da
 
 static int test_module_init(void)
 {
+  struct proc_dir_entry *proc_file_entry = proc_create("snyh123", 0, NULL, &proc_file_fops);
   printk("Test snyh haha Module Installed\n");
-
-  proc_file_entry = proc_create("snyh123", 0, NULL, &proc_file_fops);
   if (proc_file_entry == NULL)
     return -ENOMEM;
   return 0;
@@ -118,7 +115,7 @@ static void test_module_exit(void)
 module_init(test_module_init);
 module_exit(test_module_exit);
 
-MODULE_AUTHOR("IsonProjects");
+MODULE_AUTHOR("snyh");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Simple Kernel Module");
 
