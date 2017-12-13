@@ -11,12 +11,10 @@
 #include <linux/backing-dev-defs.h>
 #include <linux/genhd.h>
 
-static bool dump_inode(struct inode *i, struct vfsmount* mnt, const char*);
-static void traver_sb(struct super_block *sb, void *user_data);
-static void show_time_elapse(struct timespec begin);
+static bool dump_inode(struct seq_file*, struct inode *i, struct vfsmount* mnt, const char*);
+static void traver_sb(struct seq_file*, struct super_block *sb, void *user_data);
 
 static struct proc_dir_entry *proc_file_entry;
-static struct seq_file* SF = 0;
 
 static bool is_normal_fs_type(struct vfsmount *mnt)
 {
@@ -37,16 +35,17 @@ static bool is_normal_fs_type(struct vfsmount *mnt)
 
 static int traver_vfsmount(struct vfsmount * mnt, void *user_data)
 {
+  struct seq_file* filp = user_data;
   struct super_block *sb = mnt->mnt_sb;
 
   if (mnt->mnt_root == 0) {
     // TODO: why the mnt->mnt_sb could be a invalid pointer link 0000003d when mnt->mnt_root==0
-    seq_printf(SF, "BAD SB %p %p\n", mnt, sb);
+    seq_printf(filp, "BAD SB %p %p %d %d\n", mnt, sb, mnt->mnt_flags,   IS_ERR(sb));
     return 0;
   }
 
   if (is_normal_fs_type(mnt)) {
-    traver_sb(sb, mnt);
+    traver_sb(filp, sb, mnt);
   }
   return 0;
 }
@@ -54,13 +53,15 @@ static int traver_vfsmount(struct vfsmount * mnt, void *user_data)
 static int show_proc_content(struct seq_file *filp, void *p)
 {
   struct path root;
-  SF = filp;
+  struct vfsmount *mnt = 0;
 
+  task_lock(current);
   get_fs_root(current->fs, &root);
-  iterate_mounts(traver_vfsmount, 0, root.mnt);
+  task_unlock(current);
+
+  iterate_mounts(traver_vfsmount, filp, root.mnt);
   path_put(&root);
 
-  SF = 0;
   return 0;
 }
 
@@ -77,10 +78,9 @@ static const struct file_operations proc_file_fops = {
   .release = single_release,
 };
 
-static void traver_sb(struct super_block *sb, void *user_data)
+static void traver_sb(struct seq_file* sf, struct super_block *sb, void *user_data)
 {
   struct vfsmount* mnt = user_data;
-  struct timespec begin = CURRENT_TIME;
   struct inode *i = NULL;
   unsigned long n1 = 0;
 
@@ -89,19 +89,14 @@ static void traver_sb(struct super_block *sb, void *user_data)
 
   spin_lock(&sb->s_inode_list_lock);
   list_for_each_entry(i, &sb->s_inodes, i_sb_list) {
-    if (dump_inode(i, mnt, bname)) n1++;
+    spin_unlock(&sb->s_inode_list_lock);
+    if (dump_inode(sf, i, mnt, bname)) n1++;
+    spin_lock(&sb->s_inode_list_lock);
   }
   spin_unlock(&sb->s_inode_list_lock);
 
 
-  seq_printf(SF, "%s\t%ld\t", sb->s_id, n1);
-  show_time_elapse(begin);
-}
-
-static void show_time_elapse(struct timespec begin)
-{
-  struct timespec now = CURRENT_TIME;
-  seq_printf(SF, "%lld.%.9lds\n", (long long)(now.tv_sec - begin.tv_sec), now.tv_nsec - begin.tv_nsec);
+  seq_printf(sf, "%s\t%ld\t", sb->s_id, n1);
 }
 
 static int test_module_init(void)
@@ -127,7 +122,6 @@ MODULE_AUTHOR("IsonProjects");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Simple Kernel Module");
 
-
 static bool skip_inode(struct inode* inode)
 {
   spin_lock(&inode->i_lock);
@@ -139,7 +133,7 @@ static bool skip_inode(struct inode* inode)
   return false;
 }
 
-static bool dump_inode(struct inode *inode, struct vfsmount* mnt, const char* dev_name)
+static bool dump_inode(struct seq_file* sf, struct inode *inode, struct vfsmount* mnt, const char* dev_name)
 {
   struct dentry *d = NULL;
   static char bufname[1024];
@@ -169,19 +163,20 @@ static bool dump_inode(struct inode *inode, struct vfsmount* mnt, const char* de
     return false;
   }
 
-  if (SF) {
-    struct path r = {
-      .dentry = d,
-      .mnt = mnt,
-    };
-    seq_printf(SF, "%zuKB\t%llu%%\t%s:%ld\t%s\n",
-               ms / 1024,
-               (100 * ms / fs),
-               dev_name, bn,
-               d_path(&r, bufname, sizeof(bufname))
-               );
-  }
-  dput(d);
+
   spin_unlock(&inode->i_lock);
+
+  struct path r = {
+    .dentry = d,
+    .mnt = mnt,
+  };
+  seq_printf(sf, "%zuKB\t%llu%%\t%s:%ld\t%s\n",
+             ms / 1024,
+             (100 * ms / fs),
+             dev_name, bn,
+             d_path(&r, bufname, sizeof(bufname))
+             );
+  dput(d);
+
   return true;
 }
