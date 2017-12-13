@@ -1,9 +1,9 @@
-obj-m := test_module.o
+obj-m := mincores.o
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
-all: build test
+all: build mincores
 
 build:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD)
@@ -14,7 +14,7 @@ clean:
 	rm Module.symvers
 	rm modules.order
 
-test:
-	-@sudo rmmod test_module
-	@sudo insmod ./test_module.ko
+mincores:
+	-@sudo rmmod mincores
+	@sudo insmod ./mincores.ko
 	cd / && cat /proc/mincores
