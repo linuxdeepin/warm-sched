@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -12,7 +14,7 @@ import (
 const MincoresPath = "/proc/mincores"
 
 func SupportProduceByKernel() bool {
-	return false
+	return true
 }
 
 func ProduceByKernel(ch chan<- FileCacheInfo, dirs []string) {
@@ -58,7 +60,20 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 			fmt.Printf("E:%q %v\n", line, err)
 			break
 		}
+		//		verifyBySyscall(info)
+
 		ch <- info
+	}
+}
+
+func verifyBySyscall(info FileCacheInfo) {
+	info2, err := fileMincore(path.Join("/home", info.FName))
+	if err != nil {
+		fmt.Println("SysscallFail...", info.FName)
+	}
+	r1, r2 := ToRanges(info.InCache, 1), ToRanges(info2.InCache, 1)
+	if !reflect.DeepEqual(r1, r2) {
+		fmt.Printf("WTF: %s \n\t%v\n\t%v\n", info2.FName, info.InCache, info2.InCache)
 	}
 }
 
@@ -76,7 +91,7 @@ func buildFileCacheInfoFromKernel(fname string, bn int64, filePages int64, mappi
 }
 
 func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
-	mc := make([]bool, filePages+1)
+	mc := make([]bool, filePages)
 	for i := range mc {
 		mc[i] = false
 	}
