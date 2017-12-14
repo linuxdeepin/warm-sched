@@ -122,14 +122,16 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
       if (0 != radix_tree_exceptional_entry(radix_tree_deref_slot(slot))) {
         break;
       }
+      end = iter.index;
+      found = true;
+
 #ifdef DEBUG_MAPPING
       debug1++;
       if (end > iter.index || iter.index < start) {
         seq_printf(sf, "ERROR0: %ld < %ld < %ld ", start, iter.index, end);
       }
 #endif
-      end = iter.index;
-      found = true;
+
     }
     if (found) {
 #ifdef DEBUG_MAPPING
@@ -142,7 +144,7 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
       next_start++;
       start = next_start;
     }
-  } while (found || next_start <= total);
+  } while (found || next_start < total);
 
 #ifdef DEBUG_MAPPING
   if (debug1 != addr->nrpages) {
@@ -161,9 +163,14 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
   char* tmpname = 0;
   sector_t bn = 0;
   loff_t fs = i_size_read(inode);
+  unsigned long nrpages = inode->i_mapping->nrpages;
   unsigned long total = (fs + PAGE_SIZE - 1) / PAGE_SIZE;
   if (fs == 0) {
     return false;
+  }
+  if (total < nrpages) {
+    // Don't known why if the file size is 20480, this will be happened.
+    total = nrpages;
   }
 
   if (skip_inode(inode)) {
