@@ -96,7 +96,7 @@ MODULE_DESCRIPTION("Dump all file mapping info (according the PWD) from PageCach
 static bool skip_inode(struct inode* inode)
 {
   spin_lock(&inode->i_lock);
-  if (!S_ISREG(inode->i_mode) || inode->i_mapping->nrpages == 0) {
+  if (inode->i_nlink == 0 || !S_ISREG(inode->i_mode) || inode->i_mapping->nrpages == 0) {
     spin_unlock(&inode->i_lock);
     return true;
   }
