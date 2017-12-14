@@ -135,7 +135,7 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
   loff_t fs = inode_get_bytes(inode);
   if (fs == 0) {
     return false;
- }
+  }
 
   if (skip_inode(inode)) {
     return false;
@@ -156,13 +156,9 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
     return false;
   }
 
-  seq_printf(sf, "%ld\t%lld\t%s\t",
-             bn,
-             (fs + PAGE_SIZE - 1) / PAGE_SIZE,
-             dentry_path_raw(d, bufname, sizeof(bufname))
-             );
+  seq_printf(sf, "%ld\t%lld\t", bn, (fs + PAGE_SIZE - 1) / PAGE_SIZE);
   dump_mapping(sf, inode->i_mapping);
-  seq_printf(sf, "\n");
+  seq_printf(sf, "\t%s\n", dentry_path_raw(d, bufname, sizeof(bufname)));
 
   spin_unlock(&inode->i_lock);
   dput(d);
