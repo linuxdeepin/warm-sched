@@ -7,14 +7,6 @@ import (
 	"time"
 )
 
-func Produce(ch chan<- FileCacheInfo, dirs []string) {
-	if SupportProduceByKernel() {
-		ProduceByKernel(ch, dirs)
-	} else {
-		ProduceBySyscall(ch, dirs)
-	}
-}
-
 type FileCacheInfo struct {
 	FName   string
 	InCache []bool

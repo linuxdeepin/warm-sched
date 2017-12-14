@@ -41,7 +41,8 @@ func TakeSnapshot(dirs []string, fname string) error {
 	ch := make(chan FileCacheInfo)
 	snap := &Snapshot{}
 
-	go Produce(ch, dirs)
+	dirs = CalcRealTargets(dirs)
+	go ProduceByKernel(ch, dirs)
 
 	for info := range ch {
 		if info.InN == 0 {

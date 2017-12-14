@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,9 +19,29 @@ func SupportProduceByKernel() bool {
 	return true
 }
 
-func ProduceByKernel(ch chan<- FileCacheInfo, dirs []string) {
+func ProduceByKernel(ch chan<- FileCacheInfo, mps []string) {
 	defer close(ch)
-	collectMincores(ch, "")
+	for _, t := range mps {
+		collectMincores(ch, t)
+	}
+}
+
+func CalcRealTargets(dirs []string) []string {
+	targets := make(map[string]struct{})
+	mps := listMountPoints()
+	for _, dir := range dirs {
+		for _, mp := range mps {
+			if strings.HasPrefix(dir, mp) {
+				targets[mp] = struct{}{}
+				break
+			}
+		}
+	}
+	var ret []string
+	for t := range targets {
+		ret = append(ret, t)
+	}
+	return ret
 }
 
 func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
@@ -51,7 +73,7 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 		}
 
 		info, err := buildFileCacheInfoFromKernel(
-			strings.TrimSpace(fields[3]),
+			path.Join(mntPoint, strings.TrimSpace(fields[3])),
 			bn,
 			s,
 			fields[2],
@@ -67,7 +89,7 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 }
 
 func verifyBySyscall(info FileCacheInfo) {
-	info2, err := fileMincore(path.Join("/home", info.FName))
+	info2, err := fileMincore(info.FName)
 	if err != nil {
 		fmt.Println("SysscallFail...", info.FName)
 	}
@@ -111,4 +133,26 @@ func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
 		}
 	}
 	return total, mc, nil
+}
+
+func listMountPoints() []string {
+	bs, err := ioutil.ReadFile("/proc/self/mountstats")
+	if err != nil {
+		return nil
+	}
+	var ret []string
+	for _, line := range strings.Split(string(bs), "\n") {
+		var dev, mp, tp string
+		fmt.Sscanf(line,
+			"device %s mounted on %s with fstype %s",
+			&dev, &mp, &tp)
+		switch tp {
+		case "ext2", "ext3", "ext4", "fat", "ntfs":
+			ret = append(ret, mp)
+		default:
+			continue
+		}
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(ret)))
+	return ret
 }

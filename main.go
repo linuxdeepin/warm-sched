@@ -28,7 +28,7 @@ func main() {
 	var files []string
 
 	if flag.NArg() == 0 {
-		files = []string{"."}
+		files = []string{os.Getenv("PWD")}
 	} else {
 		files = flag.Args()
 	}
