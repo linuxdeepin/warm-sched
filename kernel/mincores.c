@@ -146,8 +146,6 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
     return false;
   }
 
-
-
   bn = bmap(inode, 0);
 
   spin_lock(&inode->i_lock);
@@ -158,9 +156,9 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
     return false;
   }
 
-
-  seq_printf(sf, "%ld\t%s\t",
+  seq_printf(sf, "%ld\t%lld\t%s\t",
              bn,
+             (fs + PAGE_SIZE - 1) / PAGE_SIZE,
              dentry_path_raw(d, bufname, sizeof(bufname))
              );
   dump_mapping(sf, inode->i_mapping);
