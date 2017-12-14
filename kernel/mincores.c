@@ -112,13 +112,29 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
   unsigned long start=0, end = 0, next_start = 0;
   bool found;
 
+#ifdef DEBUG_MAPPING
+  unsigned long debug1=0, debug2 = 0;
+#endif
+
   do {
     found = false;
     radix_tree_for_each_contig(slot, &addr->page_tree, &iter, next_start) {
+      if (0 != radix_tree_exceptional_entry(radix_tree_deref_slot(slot))) {
+        break;
+      }
+#ifdef DEBUG_MAPPING
+      debug1++;
+      if (end > iter.index || iter.index < start) {
+        seq_printf(sf, "ERROR0: %ld < %ld < %ld ", start, iter.index, end);
+      }
+#endif
       end = iter.index;
       found = true;
     }
     if (found) {
+#ifdef DEBUG_MAPPING
+      debug2 += (end - start + 1);
+#endif
       seq_printf(sf, "[%ld:%ld],", start, end);
       start = end;
       next_start = end+1;
@@ -127,6 +143,15 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
       start = next_start;
     }
   } while (found || next_start <= total);
+
+#ifdef DEBUG_MAPPING
+  if (debug1 != addr->nrpages) {
+    seq_printf(sf, " ERROR2 (%ld != %ld) ", debug1, addr->nrpages);
+  }
+  if (debug2 != addr->nrpages) {
+    seq_printf(sf, " ERROR3 (%ld != %ld) ", debug2, addr->nrpages);
+  }
+#endif
 }
 
 static bool dump_inode(struct seq_file* sf, struct inode *inode)
