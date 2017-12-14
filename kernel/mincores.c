@@ -7,7 +7,7 @@
 
 static const char* PROC_NAME = "mincores";
 
-static void dump_mapping(struct seq_file*sf, struct address_space* addr);
+static void dump_mapping(struct seq_file*sf, unsigned long total, struct address_space* addr);
 static bool dump_inode(struct seq_file*, struct inode *i);
 static void traver_sb(struct seq_file*, struct super_block *sb, void *user_data);
 
@@ -104,7 +104,7 @@ static bool skip_inode(struct inode* inode)
   return false;
 }
 
-static void dump_mapping(struct seq_file*sf, struct address_space* addr)
+static void dump_mapping(struct seq_file*sf, unsigned long total, struct address_space* addr)
 {
   void **slot;
   struct radix_tree_iter iter;
@@ -116,23 +116,27 @@ static void dump_mapping(struct seq_file*sf, struct address_space* addr)
     found = false;
     radix_tree_for_each_contig(slot, &addr->page_tree, &iter, next_start) {
       end = iter.index;
-      next_start = iter.next_index;
       found = true;
     }
     if (found) {
       seq_printf(sf, "[%ld:%ld],", start, end);
+      start = end;
+      next_start = end+1;
+    } else {
+      next_start++;
       start = next_start;
     }
-  } while (found);
+  } while (found || next_start <= total);
 }
 
 static bool dump_inode(struct seq_file* sf, struct inode *inode)
 {
   struct dentry *d = NULL;
   static char bufname[1024];
+  char* tmpname = 0;
   sector_t bn = 0;
-  size_t ms = 0;
   loff_t fs = inode_get_bytes(inode);
+  unsigned long total = (fs + PAGE_SIZE - 1) / PAGE_SIZE;
   if (fs == 0) {
     return false;
   }
@@ -145,23 +149,17 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
   if (d == 0) {
     return false;
   }
+  tmpname = dentry_path_raw(d, bufname, sizeof(bufname));
+  dput(d);
 
   bn = bmap(inode, 0);
 
+  seq_printf(sf, "%ld\t%ld\t", bn, total);
+
   spin_lock(&inode->i_lock);
-  ms = inode->i_mapping->nrpages * PAGE_SIZE;
-  if (!S_ISREG(inode->i_mode) || inode->i_mapping->nrpages == 0) {
-    spin_unlock(&inode->i_lock);
-    dput(d);
-    return false;
-  }
-
-  seq_printf(sf, "%ld\t%lld\t", bn, (fs + PAGE_SIZE - 1) / PAGE_SIZE);
-  dump_mapping(sf, inode->i_mapping);
-  seq_printf(sf, "\t%s\n", dentry_path_raw(d, bufname, sizeof(bufname)));
-
+  dump_mapping(sf, total, inode->i_mapping);
   spin_unlock(&inode->i_lock);
-  dput(d);
 
+  seq_printf(sf, "\t%s\n", tmpname);
   return true;
 }
