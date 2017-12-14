@@ -135,7 +135,7 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
   static char bufname[1024];
   char* tmpname = 0;
   sector_t bn = 0;
-  loff_t fs = inode_get_bytes(inode);
+  loff_t fs = i_size_read(inode);
   unsigned long total = (fs + PAGE_SIZE - 1) / PAGE_SIZE;
   if (fs == 0) {
     return false;
