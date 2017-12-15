@@ -16,6 +16,9 @@ import (
 const MincoresPath = "/proc/mincores"
 
 func SupportProduceByKernel() bool {
+	if _, err := os.Stat(MincoresPath); err != nil {
+		fmt.Fprintln(os.Stderr, "Please insmod mincores")
+	}
 	return true
 }
 
@@ -82,7 +85,10 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 			fmt.Printf("E:%q %v\n", line, err)
 			break
 		}
-		//		verifyBySyscall(info)
+
+		if debug {
+			verifyBySyscall(info)
+		}
 
 		ch <- info
 	}
@@ -91,7 +97,8 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 func verifyBySyscall(info FileCacheInfo) {
 	info2, err := fileMincore(info.FName)
 	if err != nil {
-		fmt.Println("SysscallFail...", info.FName)
+		fmt.Println("The mincore failed:", err)
+		return
 	}
 	r1, r2 := ToRanges(info.InCache, 1), ToRanges(info2.InCache, 1)
 	if !reflect.DeepEqual(r1, r2) {

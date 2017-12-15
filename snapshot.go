@@ -34,15 +34,17 @@ func (s *Snapshot) Swap(i, j int) {
 }
 
 func TakeSnapshot(dirs []string, fname string) error {
-	if !RunByRoot {
-		fmt.Fprintln(os.Stderr, "Sorts by disk sector need root privilege. Fallback to sorts by inode")
-	}
-
 	ch := make(chan FileCacheInfo)
 	snap := &Snapshot{}
 
 	dirs = CalcRealTargets(dirs)
-	go ProduceByKernel(ch, dirs)
+
+	if SupportProduceByKernel() {
+		dirs = CalcRealTargets(dirs)
+		go ProduceByKernel(ch, dirs)
+	} else {
+		go ProduceBySyscall(ch, dirs)
+	}
 
 	for info := range ch {
 		if info.InN == 0 {
@@ -74,11 +76,12 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 		return err
 	}
 
-	n := len(snap)/10 + 1
+	n := len(snap)/20 + 1
 	for i, r := range snap {
 		if ply && i%n == 0 {
-			go ShowPlymouthMessage(fmt.Sprintf(`--text=%s -- %d%%`, r.Name, i*10/n))
+			go ShowPlymouthMessage(fmt.Sprintf("--text=%s -- %d%%", r.Name, i*5/n))
 		}
+
 		var err error
 		if wait {
 			err = Readahead(r.Name, r.Ranges)
@@ -106,7 +109,9 @@ func (s *Snapshot) SaveTo(fname string) error {
 	var ret []SnapshotItem
 	for _, i := range s.infos {
 		ret = append(ret, SnapshotItem{i.FName, ToRanges(i.InCache, PageSize64)})
-		fmt.Printf("%d %d %s\n", i.inode, i.sector, i.FName)
+		if debug {
+			fmt.Printf("%d %d%% %s\n", i.sector, i.Percentage(), i.FName)
+		}
 	}
 
 	return gob.NewEncoder(f).Encode(ret)

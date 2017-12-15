@@ -1,1 +1,3 @@
 /bin
+/lib/systemd/system/
+/var/cache/warm-sched/

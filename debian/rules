@@ -5,12 +5,13 @@ DESTDIR=debian/tmp
 VERSION:=0.1.0
 
 %:
-	dh $@ --with dkms
+	dh $@ --with dkms --with systemd
 
 override_dh_auto_install:
 	mkdir -p $(DESTDIR)/usr/src/mincores-$(VERSION)
 	mkdir -p $(DESTDIR)/usr/share/initramfs-tools/modules.d
 	mkdir -p $(DESTDIR)/lib/systemd/system/
+	mkdir -p $(DESTDIR)/var/cache/warm-sched
 
 	cp -ar kernel/* $(DESTDIR)/usr/src/mincores-$(VERSION)/
 	cp -ar systemd/* $(DESTDIR)/lib/systemd/system/

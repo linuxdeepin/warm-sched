@@ -1,0 +1,7 @@
+[Unit]
+Description=Load the PageCache for %i
+Before=systemd-user-session.service display-manager.service
+    
+[Service]
+Type=oneshot
+ExecStart=/bin/warm-sched -plymouth -load -out /var/cache/warm-sched/snap-%i
