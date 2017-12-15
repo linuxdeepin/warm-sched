@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "debian/9/vbguest"
 #  config.vm.box = "deepin15.4"
 
-  config.vm.synced_folder "./kernel", "/vagrant", type: "virtualbox"
+  config.vm.synced_folder "./", "/home/vagrant/work", type: "virtualbox"
   # config.vm.synced_folder ".", "/home/vagrant/work", type: "rsync",
   #                         rsync__exclude: ".git/"
 
@@ -75,7 +75,4 @@ Vagrant.configure("2") do |config|
   #   apt-get update
   #   apt-get install -y apache2
   # SHELL
-  config.vm.provision "shell", inline: <<-SHELL
-    cd /vagrant >> /home/vagrant/.bashrc
-  SHELL
 end

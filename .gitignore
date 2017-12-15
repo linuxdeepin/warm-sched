@@ -7,3 +7,4 @@
 /kernel/*.mod.c
 /kernel/*.ko
 kernel/.tmp_versions/
+bin

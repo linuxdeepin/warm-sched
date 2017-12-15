@@ -1,0 +1,15 @@
+Source: warm-sched
+Priority: extra
+Maintainer: Deepin Sysdev <sysdev@deepin.com>
+Build-Depends: debhelper (>= 9), dkms, golang-go | gccgo-5, golang-golang-x-sys-dev
+Standards-Version: 0.1
+Homepage: http://github.com/snyh/warm-sched
+
+Package: warm-sched
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, mincores-dkms
+Description: warm-sched
+
+Package: mincores-dkms
+Architecture: any
+Description: mincores kernel module

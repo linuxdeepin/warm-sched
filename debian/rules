@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export GOPATH:=/usr/share/gocode
+DESTDIR=debian/tmp
+VERSION:=0.1.0
+
+%:
+	dh $@ --with dkms
+
+override_dh_auto_install:
+	mkdir -p $(DESTDIR)/usr/src/mincores-$(VERSION)
+	mkdir -p $(DESTDIR)/usr/share/initramfs-tools/modules.d
+	mkdir -p $(DESTDIR)/lib/systemd/system/
+
+	cp -ar kernel/* $(DESTDIR)/usr/src/mincores-$(VERSION)/
+	cp -ar systemd/* $(DESTDIR)/lib/systemd/system/
+	echo mincores > $(DESTDIR)/usr/share/initramfs-tools/modules.d/mincores
+
+	dh_auto_install
