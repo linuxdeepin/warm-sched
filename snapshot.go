@@ -59,6 +59,10 @@ func ShowPlymouthMessage(msg string) {
 }
 
 func LoadSnapshot(fname string, wait bool, ply bool) error {
+	if _, err := exec.LookPath("plymouth"); err != nil {
+		ply = false
+	}
+
 	f, err := os.Open(fname)
 	if err != nil {
 		return err

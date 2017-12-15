@@ -1,0 +1,10 @@
+[Unit]
+Description=Load the PageCache for Full
+ConditionPathExists=/var/cache/warm-sched/snap-full
+After=warm-sched-load-basic.service warm-sched-take-basic.service
+
+[Service]
+ExecStart=/bin/warm-sched -load -out /var/cache/warm-sched/snap-full
+
+[Install]
+WantedBy=graphical.target

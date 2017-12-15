@@ -1,6 +1,0 @@
-[Unit]
-Description=Take PageCache snapshot for %i
-After=systemd-user-session.service
-    
-[Service]
-ExecStart=/bin/warm-sched -take -out /var/cache/warm-sched/snap-%i

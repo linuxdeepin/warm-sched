@@ -132,7 +132,7 @@ func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
 		}
 		total += end - start + 1
 		for i := start; i <= end; i++ {
-			if i > filePages {
+			if i >= filePages {
 				return 0, nil, fmt.Errorf("WTF: %d %d\n", i, filePages)
 			}
 			mc[i] = true
