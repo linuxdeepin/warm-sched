@@ -29,9 +29,8 @@ func ProduceByKernel(ch chan<- FileCacheInfo, mps []string) {
 	}
 }
 
-func CalcRealTargets(dirs []string) []string {
+func CalcRealTargets(dirs []string, mps []string) []string {
 	targets := make(map[string]struct{})
-	mps := listMountPoints()
 	for _, dir := range dirs {
 		for _, mp := range mps {
 			if strings.HasPrefix(dir, mp) {
@@ -142,7 +141,7 @@ func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
 	return total, mc, nil
 }
 
-func listMountPoints() []string {
+func ListMountPoints() []string {
 	bs, err := ioutil.ReadFile("/proc/self/mountstats")
 	if err != nil {
 		return nil

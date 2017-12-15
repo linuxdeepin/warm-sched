@@ -7,14 +7,7 @@ import (
 
 func ShowRAMUsage(dirs []string) error {
 	ch := make(chan FileCacheInfo)
-
-	if SupportProduceByKernel() {
-		dirs = CalcRealTargets(dirs)
-		go ProduceByKernel(ch, dirs)
-	} else {
-		go ProduceBySyscall(ch, dirs)
-	}
-
+	Produce(ch, dirs)
 	return consumePrint(ch, dirs)
 }
 

@@ -28,9 +28,9 @@ func main() {
 	var files []string
 
 	if flag.NArg() == 0 {
-		files = []string{os.Getenv("PWD")}
+		files = ListMountPoints()
 	} else {
-		files = flag.Args()
+		files = CalcRealTargets(flag.Args(), ListMountPoints())
 	}
 
 	var err error
