@@ -2,9 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"reflect"
 	"sort"
@@ -142,22 +143,32 @@ func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
 }
 
 func ListMountPoints() []string {
-	bs, err := ioutil.ReadFile("/proc/self/mountstats")
+	cmd := exec.Command("/bin/df",
+		"-t", "ext2",
+		"-t", "ext3",
+		"-t", "ext4",
+		"-t", "fat",
+		"-t", "ntfs",
+		"--output=target")
+	buf := bytes.NewBuffer(nil)
+	cmd.Stdout = buf
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
 		return nil
 	}
+
+	line, err := buf.ReadString('\n')
+	if line != "Mounted on\n" || err != nil {
+		return nil
+	}
 	var ret []string
-	for _, line := range strings.Split(string(bs), "\n") {
-		var dev, mp, tp string
-		fmt.Sscanf(line,
-			"device %s mounted on %s with fstype %s",
-			&dev, &mp, &tp)
-		switch tp {
-		case "ext2", "ext3", "ext4", "fat", "ntfs":
-			ret = append(ret, mp)
-		default:
-			continue
+	for {
+		line, err := buf.ReadString('\n')
+		if err != nil {
+			break
 		}
+		ret = append(ret, strings.TrimSpace(line))
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(ret)))
 	return ret
