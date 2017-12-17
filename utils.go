@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -52,6 +53,14 @@ func SystemMemoryInfo() int64 {
 		return t * int64(KB)
 	}
 	return 0
+}
+
+func ShowPlymouthMessage(msg string) {
+	cmd := exec.Command("plymouth", "display-message", msg)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("PLY:%v %v\n", err, cmd.Args)
+	}
 }
 
 func FullRanges(fileSize int64) []MemRange {

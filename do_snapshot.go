@@ -12,6 +12,22 @@ type Snapshot struct {
 	infos []FileCacheInfo
 }
 
+type SnapshotItem struct {
+	Name   string
+	Ranges []MemRange
+}
+
+func (i SnapshotItem) String() string {
+	ret := fmt.Sprintf("%s\n\t", i.Name)
+	for i, r := range i.Ranges {
+		if i != 0 {
+			ret += ", "
+		}
+		ret += fmt.Sprintf("[%d,%d]", r.Offset, r.Length)
+	}
+	return ret
+}
+
 func (s *Snapshot) Add(i FileCacheInfo) {
 	s.infos = append(s.infos, i)
 }
@@ -34,6 +50,18 @@ func (s *Snapshot) Swap(i, j int) {
 }
 
 func ShowSnapshot(fname string) error {
+	f, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	var snap []SnapshotItem
+	err = gob.NewDecoder(f).Decode(&snap)
+	if err != nil {
+		return err
+	}
+	for _, r := range snap {
+		fmt.Printf("%v\n", r.Name)
+	}
 	return nil
 }
 
@@ -52,14 +80,6 @@ func TakeSnapshot(dirs []string, fname string) error {
 	sort.Sort(snap)
 
 	return snap.SaveTo(fname)
-}
-
-func ShowPlymouthMessage(msg string) {
-	cmd := exec.Command("plymouth", "display-message", msg)
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("PLY:%v %v\n", err, cmd.Args)
-	}
 }
 
 func LoadSnapshot(fname string, wait bool, ply bool) error {
@@ -94,11 +114,6 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 		}
 	}
 	return nil
-}
-
-type SnapshotItem struct {
-	Name   string
-	Ranges []MemRange
 }
 
 func (s *Snapshot) SaveTo(fname string) error {
