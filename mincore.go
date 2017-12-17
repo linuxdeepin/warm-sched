@@ -21,12 +21,12 @@ type FileCacheInfo struct {
 	sector uint64
 }
 
-func Produce(ch chan<- FileCacheInfo, mps []string) {
-	if SupportProduceByKernel() {
-		go ProduceByKernel(ch, mps)
-	} else {
-		go ProduceBySyscall(ch, mps)
+func Produce(ch chan<- FileCacheInfo, mps []string) error {
+	if err := SupportProduceByKernel(); err != nil {
+		return err
 	}
+	go ProduceByKernel(ch, mps)
+	return nil
 }
 
 func (info FileCacheInfo) String() string {

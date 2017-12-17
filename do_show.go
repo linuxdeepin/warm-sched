@@ -7,7 +7,10 @@ import (
 
 func DumpCurrentPageCache(dirs []string) error {
 	ch := make(chan FileCacheInfo)
-	Produce(ch, dirs)
+	err := Produce(ch, dirs)
+	if err != nil {
+		return err
+	}
 	return consumePrint(ch, dirs)
 }
 

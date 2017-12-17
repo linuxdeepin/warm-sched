@@ -69,7 +69,10 @@ func TakeSnapshot(dirs []string, fname string) error {
 	ch := make(chan FileCacheInfo)
 	snap := &Snapshot{}
 
-	Produce(ch, dirs)
+	err := Produce(ch, dirs)
+	if err != nil {
+		return err
+	}
 
 	for info := range ch {
 		if info.InN == 0 {

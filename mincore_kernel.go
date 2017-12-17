@@ -16,11 +16,11 @@ import (
 // Read PageCache from /proc/mincores
 const MincoresPath = "/proc/mincores"
 
-func SupportProduceByKernel() bool {
+func SupportProduceByKernel() error {
 	if _, err := os.Stat(MincoresPath); err != nil {
-		fmt.Fprintln(os.Stderr, "Please insmod mincores")
+		return fmt.Errorf("Please insmod mincores")
 	}
-	return true
+	return nil
 }
 
 func ProduceByKernel(ch chan<- FileCacheInfo, mps []string) {
