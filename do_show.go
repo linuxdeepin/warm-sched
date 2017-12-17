@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func ShowRAMUsage(dirs []string) error {
+func DumpCurrentPageCache(dirs []string) error {
 	ch := make(chan FileCacheInfo)
 	Produce(ch, dirs)
 	return consumePrint(ch, dirs)

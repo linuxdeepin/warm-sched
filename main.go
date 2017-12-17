@@ -9,17 +9,16 @@ import (
 var debug = false
 
 func main() {
-	var load bool
-	var drop bool
-	var takeS, loadS, wait, ply bool
+	var takeS, loadS, showS bool
+	var wait, ply bool
 	var out string
 
-	flag.BoolVar(&load, "l", false, "preload files")
-	flag.BoolVar(&drop, "d", false, "drop files")
-	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.BoolVar(&takeS, "take", false, "take a snapshot")
 	flag.BoolVar(&loadS, "load", false, "load the snapshot")
+	flag.BoolVar(&showS, "show", false, "show content of the snapshot")
+
 	flag.StringVar(&out, "out", "/dev/shm/hh", "the file name for snapshot")
+	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.BoolVar(&wait, "wait", true, "wait load completed")
 	flag.BoolVar(&ply, "plymouth", false, "report progress to plymouth")
 
@@ -39,12 +38,11 @@ func main() {
 		err = TakeSnapshot(files, out)
 	case loadS:
 		err = LoadSnapshot(out, wait, ply)
-	case load:
-		err = LoadFiles(files)
-	case drop:
-		err = DropFiles(files)
+	case showS:
+		err = ShowSnapshot(out)
 	default:
-		err = ShowRAMUsage(files)
+		err = DumpCurrentPageCache(files)
+
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)

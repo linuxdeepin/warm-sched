@@ -33,6 +33,10 @@ func (s *Snapshot) Swap(i, j int) {
 	s.infos[i], s.infos[j] = s.infos[j], s.infos[i]
 }
 
+func ShowSnapshot(fname string) error {
+	return nil
+}
+
 func TakeSnapshot(dirs []string, fname string) error {
 	ch := make(chan FileCacheInfo)
 	snap := &Snapshot{}
