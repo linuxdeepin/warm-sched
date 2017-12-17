@@ -6,25 +6,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"unsafe"
 )
-
-var BlackDirectory = []string{"/sys", "/proc", "/dev", "/run", "/boot"}
-
-func shouldSkipDirectory(root string) bool {
-	r, err := filepath.Abs(root)
-	if err != nil {
-		return true
-	}
-	for _, i := range BlackDirectory {
-		if strings.HasPrefix(r, i) {
-			return true
-		}
-	}
-	return false
-}
 
 func ProduceBySyscall(ch chan<- FileCacheInfo, dirs []string) {
 	defer close(ch)
@@ -46,7 +30,7 @@ func ProduceBySyscall(ch chan<- FileCacheInfo, dirs []string) {
 }
 
 func showDirCacheInfos(root string, ch chan<- FileCacheInfo) error {
-	if shouldSkipDirectory(root) {
+	if BlackDirectory.ShouldSkip(root) {
 		return nil
 	}
 	f, err := os.Open(root)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 )
 
 type MemRange struct {
@@ -19,6 +20,29 @@ type FileCacheInfo struct {
 	inode  uint64
 	dev    uint64
 	sector uint64
+}
+
+var BlackDirectory = stringSlice{
+	"/sys/",
+	"/proc/",
+	"/dev/",
+	"/run/",
+	"/boot/",
+	"/tmp/",
+	"/var/log/",
+	"/var/lib/dpkg/",
+	"/var/lib/apt/",
+	"/var/lib/lastore/",
+	"/var/lib/docker/",
+}
+
+func (ss stringSlice) ShouldSkip(d string) bool {
+	for _, i := range ss {
+		if strings.HasPrefix(d, i) {
+			return true
+		}
+	}
+	return false
 }
 
 func Produce(ch chan<- FileCacheInfo, mps []string) error {

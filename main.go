@@ -17,6 +17,7 @@ func main() {
 	flag.BoolVar(&loadS, "load", false, "load the snapshot")
 	flag.BoolVar(&showS, "show", false, "show content of the snapshot")
 
+	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
 	flag.StringVar(&out, "out", "/dev/shm/hh", "the file name for snapshot")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.BoolVar(&wait, "wait", true, "wait load completed")
@@ -47,4 +48,15 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)
 	}
+}
+
+type stringSlice []string
+
+func (s *stringSlice) String() string {
+	return fmt.Sprintf("%s", *s)
+}
+
+func (i *stringSlice) Set(v string) error {
+	*i = append(*i, v)
+	return nil
 }

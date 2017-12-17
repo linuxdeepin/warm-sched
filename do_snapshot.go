@@ -75,7 +75,7 @@ func TakeSnapshot(dirs []string, fname string) error {
 	}
 
 	for info := range ch {
-		if info.InN == 0 {
+		if info.InN == 0 || BlackDirectory.ShouldSkip(info.FName) {
 			continue
 		}
 		snap.Add(info)
@@ -102,6 +102,10 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 
 	n := len(snap)/20 + 1
 	for i, r := range snap {
+		if BlackDirectory.ShouldSkip(r.Name) {
+			continue
+		}
+
 		if ply && i%n == 0 {
 			go ShowPlymouthMessage(fmt.Sprintf("--text=%s -- %d%%", r.Name, i*5/n))
 		}

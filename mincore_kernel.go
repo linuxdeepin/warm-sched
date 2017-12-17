@@ -75,8 +75,13 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 			break
 		}
 
+		fname := path.Join(mntPoint, strings.TrimSpace(fields[3]))
+		if BlackDirectory.ShouldSkip(fname) {
+			continue
+		}
+
 		info, err := buildFileCacheInfoFromKernel(
-			path.Join(mntPoint, strings.TrimSpace(fields[3])),
+			fname,
 			bn,
 			s,
 			fields[2],
