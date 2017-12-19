@@ -8,6 +8,10 @@ import (
 
 var debug = false
 
+const (
+	SnapFull = "snap-full"
+)
+
 type AppFlags struct {
 	takeS bool
 	loadS bool
@@ -16,6 +20,8 @@ type AppFlags struct {
 	wait bool
 	ply  bool
 	out  string
+
+	cacheDir string
 
 	takeApp bool
 }
@@ -43,7 +49,7 @@ func doActions(af AppFlags, files []string) error {
 	var err error
 	switch {
 	case af.takeApp:
-		err = TakeApplicationSnapshot(files)
+		err = TakeApplicationSnapshot(af.cacheDir, files[0])
 	case af.takeS:
 		err = TakeSnapshot(files, af.out)
 	case af.loadS:
@@ -58,6 +64,8 @@ func doActions(af AppFlags, files []string) error {
 
 func main() {
 	var af AppFlags
+
+	flag.StringVar(&af.cacheDir, "cacheDir", "/var/cache/warm-sched", "base cache directory")
 
 	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
 	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")

@@ -8,8 +8,17 @@ import (
 	"sort"
 )
 
+type snapshotItemStatus int
+
+const (
+	snapshotItemInvalid snapshotItemStatus = iota
+	snapshotItemAlways
+	snapshotItemRemoved
+)
+
 type Snapshot struct {
-	infos []FileCacheInfo
+	infos  []FileCacheInfo
+	status map[string]snapshotItemStatus
 }
 
 type SnapshotItem struct {
@@ -50,12 +59,7 @@ func (s *Snapshot) Swap(i, j int) {
 }
 
 func ShowSnapshot(fname string) error {
-	f, err := os.Open(fname)
-	if err != nil {
-		return err
-	}
-	var snap []SnapshotItem
-	err = gob.NewDecoder(f).Decode(&snap)
+	snap, err := ParseSnapshot(fname)
 	if err != nil {
 		return err
 	}
@@ -65,13 +69,27 @@ func ShowSnapshot(fname string) error {
 	return nil
 }
 
-func TakeSnapshot(dirs []string, fname string) error {
-	ch := make(chan FileCacheInfo)
-	snap := &Snapshot{}
-
-	err := Produce(ch, dirs)
+func ParseSnapshot(fname string) ([]SnapshotItem, error) {
+	f, err := os.Open(fname)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	var snap []SnapshotItem
+	err = gob.NewDecoder(f).Decode(&snap)
+	if err != nil {
+		return nil, err
+	}
+	return snap, nil
+}
+
+func takeSnapshot(mps []string) (*Snapshot, error) {
+	ch := make(chan FileCacheInfo)
+	snap := &Snapshot{
+		status: make(map[string]snapshotItemStatus),
+	}
+	err := Produce(ch, mps)
+	if err != nil {
+		return nil, err
 	}
 
 	for info := range ch {
@@ -80,8 +98,15 @@ func TakeSnapshot(dirs []string, fname string) error {
 		}
 		snap.Add(info)
 	}
-	sort.Sort(snap)
+	return snap, nil
+}
 
+func TakeSnapshot(dirs []string, fname string) error {
+	snap, err := takeSnapshot(dirs)
+	if err != nil {
+		return err
+	}
+	sort.Sort(snap)
 	return snap.SaveTo(fname)
 }
 
@@ -123,20 +148,23 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 	return nil
 }
 
+func (s *Snapshot) ToItems() []SnapshotItem {
+	var ret []SnapshotItem
+	for _, i := range s.infos {
+		if s.status[i.FName] == snapshotItemRemoved {
+			continue
+		}
+		ret = append(ret, SnapshotItem{i.FName, ToRanges(i.InCache, PageSize64)})
+	}
+	return ret
+}
+
 func (s *Snapshot) SaveTo(fname string) error {
 	f, err := os.Create(fname)
 	if err != nil {
 		return err
 	}
-
-	var ret []SnapshotItem
-	for _, i := range s.infos {
-		ret = append(ret, SnapshotItem{i.FName, ToRanges(i.InCache, PageSize64)})
-		if debug {
-			fmt.Printf("%d %d%% %s\n", i.sector, i.Percentage(), i.FName)
-		}
-	}
-
+	ret := s.ToItems()
 	return gob.NewEncoder(f).Encode(ret)
 }
 
