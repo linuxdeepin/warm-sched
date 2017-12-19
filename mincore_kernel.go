@@ -155,6 +155,7 @@ func ListMountPoints() []string {
 		"-t", "fat",
 		"-t", "ntfs",
 		"--output=target")
+	cmd.Env = []string{"LC_ALL=C"}
 	buf := bytes.NewBuffer(nil)
 	cmd.Stdout = buf
 	cmd.Stderr = os.Stderr
