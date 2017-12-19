@@ -49,6 +49,8 @@ func CalcRealTargets(dirs []string, mps []string) []string {
 
 func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 	if mntPoint != "" && mntPoint != "." {
+		wd, _ := os.Getwd()
+		defer os.Chdir(wd)
 		os.Chdir(mntPoint)
 	}
 	f, err := os.Open(MincoresPath)
