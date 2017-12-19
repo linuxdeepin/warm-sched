@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 	"path"
 	"path/filepath"
 )
 
-func runAndRecordOpenFiles(prog string) ([]string, error) {
-	err := exec.Command(prog).Run()
-	return nil, err
+func runAndRecordOpenFiles(idFile string, cgroup string) ([]string, error) {
+	if !FileExists(idFile) {
+		return nil, fmt.Errorf("Can't find identify file %q", idFile)
+	}
+	return nil, nil
 }
 
 func EnumerateAllApps(cacheDir string) []string {
@@ -17,8 +18,8 @@ func EnumerateAllApps(cacheDir string) []string {
 	return all
 }
 
-func TakeApplicationSnapshot(cacheDir string, prog string) error {
-	files, err := runAndRecordOpenFiles(prog)
+func TakeApplicationSnapshot(cacheDir string, identiFile string) error {
+	files, err := runAndRecordOpenFiles(identiFile, "")
 	if err != nil {
 		return err
 	}
@@ -27,13 +28,13 @@ func TakeApplicationSnapshot(cacheDir string, prog string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Collected %d files after executed %q\n", len(app.infos), prog)
+	fmt.Printf("Collected %d files for %q\n", len(app.infos), identiFile)
 	app.Always(files)
 	fmt.Printf("Mark %d files as directly dependence\n", len(files))
 
 	reduceSnapshot(app, path.Join(cacheDir, SnapFull))
 
-	fname := path.Join(cacheDir, "apps", path.Base(prog))
+	fname := path.Join(cacheDir, "apps", path.Base(identiFile))
 	for _, other := range EnumerateAllApps(cacheDir) {
 		if other == fname {
 			continue

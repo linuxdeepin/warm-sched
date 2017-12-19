@@ -13,6 +13,14 @@ const KB = 1024
 const MB = 1024 * KB
 const GB = 1024 * MB
 
+func FileExists(f string) bool {
+	info, err := os.Stat(f)
+	if err != nil || info.IsDir() {
+		return false
+	}
+	return true
+}
+
 func humanSize(s int) string {
 	if s > GB {
 		return fmt.Sprintf("%0.2fG", float32(s)/float32(GB))

@@ -11,7 +11,7 @@ override_dh_auto_install:
 	mkdir -p $(DESTDIR)/usr/src/mincores-$(VERSION)
 	mkdir -p $(DESTDIR)/usr/lib/modules-load.d/
 	mkdir -p $(DESTDIR)/lib/systemd/system/
-	mkdir -p $(DESTDIR)/var/cache/warm-sched
+	mkdir -p $(DESTDIR)/var/cache/warm-sched/apps
 
 	cp -ar kernel/* $(DESTDIR)/usr/src/mincores-$(VERSION)/
 	cp -ar systemd/* $(DESTDIR)/lib/systemd/system/
