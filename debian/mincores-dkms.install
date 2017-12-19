@@ -1,2 +1,2 @@
 /usr/src/
-/usr/share/initramfs-tools/modules.d/mincores
+/usr/lib/modules-load.d/

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<policyconfig>
+
+  <vendor>deepin</vendor>
+  <vendor_url>http://deepin.org/</vendor_url>
+
+  <action id="com.deepin.warm-sched-take-full">
+    <description>Take a full snapshot from current PageCache</description>
+    <message>Take a full snapshot from current PageCache for speed up login DDE</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    
+    <!-- TODO: fix privilege permission problem. Only warm-sched-take-full should be automatically lift rights-->
+    <annotate key="org.freedesktop.policykit.exec.path">/bin/warm-sched</annotate>
+  </action>
+
+</policyconfig>

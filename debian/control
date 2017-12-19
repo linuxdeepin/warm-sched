@@ -7,9 +7,10 @@ Homepage: http://github.com/snyh/warm-sched
 
 Package: warm-sched
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, mincores-dkms
+Depends: ${shlibs:Depends}, ${misc:Depends}, mincores-dkms, policykit-1
 Description: warm-sched
 
 Package: mincores-dkms
+Depends: linux-headers | linux-headers-generic | linux-headers-amd64 | linux-headers-deepin-amd64
 Architecture: any
 Description: mincores kernel module

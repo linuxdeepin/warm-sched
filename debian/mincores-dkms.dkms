@@ -8,5 +8,4 @@ CLEAN="make -C ${kernel_source_dir} SUBDIRS=${dkms_tree}/${PACKAGE_NAME}/${PACKA
 DEST_MODULE_LOCATION[0]="/updates/mm/"
 BUILT_MODULE_NAME[0]="mincores"
 
-REMAKE_INITRD="yes"
 AUTOINSTALL="yes"
