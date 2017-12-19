@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 )
 
 var debug = false
@@ -16,6 +17,8 @@ type AppFlags struct {
 	takeS bool
 	loadS bool
 	showS bool
+
+	loadFull bool
 
 	wait bool
 	ply  bool
@@ -48,6 +51,8 @@ func normalizeFlags(af AppFlags, args []string) ([]string, error) {
 func doActions(af AppFlags, files []string) error {
 	var err error
 	switch {
+	case af.loadFull:
+		err = LoadFull(af.cacheDir)
 	case af.takeApp:
 		err = TakeApplicationSnapshot(af.cacheDir, files[0])
 	case af.takeS:
@@ -62,6 +67,14 @@ func doActions(af AppFlags, files []string) error {
 	return err
 }
 
+func LoadFull(baseDir string) error {
+	err := LoadSnapshot(path.Join(baseDir, SnapFull), true, false)
+	for _, app := range EnumerateAllApps(baseDir) {
+		err = LoadSnapshot(app, true, false)
+	}
+	return err
+}
+
 func main() {
 	var af AppFlags
 
@@ -71,6 +84,7 @@ func main() {
 	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")
 	flag.BoolVar(&af.showS, "show", false, "show content of the snapshot")
 
+	flag.BoolVar(&af.loadFull, "load-full", false, "load full snapshot then load all applications snapshot")
 	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
 
 	flag.StringVar(&af.out, "out", "/dev/shm/hh", "the file name for snapshot")

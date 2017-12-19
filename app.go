@@ -12,7 +12,7 @@ func runAndRecordOpenFiles(prog string) ([]string, error) {
 	return nil, err
 }
 
-func enumerateAllApps(cacheDir string) []string {
+func EnumerateAllApps(cacheDir string) []string {
 	all, _ := filepath.Glob(path.Join(cacheDir, "apps", "*"))
 	return all
 }
@@ -34,7 +34,7 @@ func TakeApplicationSnapshot(cacheDir string, prog string) error {
 	reduceSnapshot(app, path.Join(cacheDir, SnapFull))
 
 	fname := path.Join(cacheDir, "apps", path.Base(prog))
-	for _, other := range enumerateAllApps(cacheDir) {
+	for _, other := range EnumerateAllApps(cacheDir) {
 		if other == fname {
 			continue
 		}
