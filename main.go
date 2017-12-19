@@ -8,42 +8,74 @@ import (
 
 var debug = false
 
-func main() {
-	var takeS, loadS, showS bool
-	var wait, ply bool
-	var out string
+type AppFlags struct {
+	takeS bool
+	loadS bool
+	showS bool
 
-	flag.BoolVar(&takeS, "take", false, "take a snapshot")
-	flag.BoolVar(&loadS, "load", false, "load the snapshot")
-	flag.BoolVar(&showS, "show", false, "show content of the snapshot")
+	wait bool
+	ply  bool
+	out  string
 
-	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
-	flag.StringVar(&out, "out", "/dev/shm/hh", "the file name for snapshot")
-	flag.BoolVar(&debug, "debug", false, "debug mode")
-	flag.BoolVar(&wait, "wait", true, "wait load completed")
-	flag.BoolVar(&ply, "plymouth", false, "report progress to plymouth")
+	takeApp bool
+}
 
-	flag.Parse()
-
-	var files []string
-
-	if flag.NArg() == 0 {
-		files = ListMountPoints()
-	} else {
-		files = CalcRealTargets(flag.Args(), ListMountPoints())
-	}
-
+func normalizeFlags(af AppFlags, args []string) ([]string, error) {
 	var err error
 	switch {
-	case takeS:
-		err = TakeSnapshot(files, out)
-	case loadS:
-		err = LoadSnapshot(out, wait, ply)
-	case showS:
-		err = ShowSnapshot(out)
+	case af.takeApp:
+		if len(args) == 0 {
+			return nil, fmt.Errorf("Please specify the applicaton's path")
+		}
+	case af.takeS, af.loadS, af.showS:
+		if flag.NArg() == 0 {
+			args = ListMountPoints()
+		} else {
+			args = CalcRealTargets(args, ListMountPoints())
+		}
+	default:
+		args = ListMountPoints()
+	}
+	return args, err
+}
+
+func doActions(af AppFlags, files []string) error {
+	var err error
+	switch {
+	case af.takeApp:
+		err = TakeApplicationSnapshot(files)
+	case af.takeS:
+		err = TakeSnapshot(files, af.out)
+	case af.loadS:
+		err = LoadSnapshot(af.out, af.wait, af.ply)
+	case af.showS:
+		err = ShowSnapshot(af.out)
 	default:
 		err = DumpCurrentPageCache(files)
+	}
+	return err
+}
 
+func main() {
+	var af AppFlags
+
+	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
+	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")
+	flag.BoolVar(&af.showS, "show", false, "show content of the snapshot")
+
+	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
+
+	flag.StringVar(&af.out, "out", "/dev/shm/hh", "the file name for snapshot")
+	flag.BoolVar(&af.wait, "wait", true, "wait load completed")
+	flag.BoolVar(&af.ply, "plymouth", false, "report progress to plymouth")
+
+	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
+	flag.BoolVar(&debug, "debug", false, "debug mode")
+
+	flag.Parse()
+	files, err := normalizeFlags(af, flag.Args())
+	if err == nil {
+		err = doActions(af, files)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)
