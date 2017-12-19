@@ -7,7 +7,7 @@ ConditionPathExists=/var/cache/warm-sched/snap-basic
 
 [Service]
 Type=oneshot
-ExecStart=/bin/warm-sched -load -out /var/cache/warm-sched/snap-basic
+ExecStart=/bin/warm-sched -load /var/cache/warm-sched/snap-basic
 
 [Install]
 WantedBy=default.target

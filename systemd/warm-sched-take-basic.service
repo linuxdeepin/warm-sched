@@ -5,7 +5,7 @@ Before=warm-sched-load-full.service
 ConditionPathExists=!/var/cache/warm-sched/snap-basic
 
 [Service]
-ExecStart=/bin/warm-sched -take -out /var/cache/warm-sched/snap-basic
+ExecStart=/bin/warm-sched -take /var/cache/warm-sched/snap-basic
 
 [Install]
 WantedBy=default.target

@@ -22,9 +22,10 @@ type AppFlags struct {
 
 	wait bool
 	ply  bool
-	out  string
 
 	cacheDir string
+
+	scanMountPoints stringSlice
 
 	takeApp bool
 }
@@ -33,36 +34,34 @@ func normalizeFlags(af AppFlags, args []string) ([]string, error) {
 	var err error
 	switch {
 	case af.takeApp:
-		if len(args) == 0 {
-			return nil, fmt.Errorf("Please specify the applicaton's path")
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Please specify the applicaton's identify file path.")
 		}
 	case af.takeS, af.loadS, af.showS:
-		if flag.NArg() == 0 {
-			args = ListMountPoints()
-		} else {
-			args = CalcRealTargets(args, ListMountPoints())
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Please specify the snapshot name to handle.")
 		}
 	default:
-		args = ListMountPoints()
+		args = af.scanMountPoints
 	}
 	return args, err
 }
 
-func doActions(af AppFlags, files []string) error {
+func doActions(af AppFlags, args []string) error {
 	var err error
 	switch {
 	case af.loadFull:
 		err = LoadFull(af.cacheDir)
 	case af.takeApp:
-		err = TakeApplicationSnapshot(af.cacheDir, files[0])
+		err = TakeApplicationSnapshot(af.cacheDir, af.scanMountPoints, args[0])
 	case af.takeS:
-		err = TakeSnapshot(files, af.out)
+		err = TakeSnapshot(af.scanMountPoints, args[0])
 	case af.loadS:
-		err = LoadSnapshot(af.out, af.wait, af.ply)
+		err = LoadSnapshot(args[0], af.wait, af.ply)
 	case af.showS:
-		err = ShowSnapshot(af.out)
+		err = ShowSnapshot(args[0])
 	default:
-		err = DumpCurrentPageCache(files)
+		err = DumpCurrentPageCache(af.scanMountPoints)
 	}
 	return err
 }
@@ -77,8 +76,10 @@ func LoadFull(baseDir string) error {
 
 func main() {
 	var af AppFlags
+	af.scanMountPoints = ListMountPoints()
 
 	flag.StringVar(&af.cacheDir, "cacheDir", "/var/cache/warm-sched", "base cache directory")
+	flag.Var(&af.scanMountPoints, "scanMountPoints", "The mount points to scan.")
 
 	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
 	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")
@@ -87,7 +88,6 @@ func main() {
 	flag.BoolVar(&af.loadFull, "load-full", false, "load full snapshot then load all applications snapshot")
 	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
 
-	flag.StringVar(&af.out, "out", "/dev/shm/hh", "the file name for snapshot")
 	flag.BoolVar(&af.wait, "wait", true, "wait load completed")
 	flag.BoolVar(&af.ply, "plymouth", false, "report progress to plymouth")
 
@@ -95,9 +95,9 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "debug mode")
 
 	flag.Parse()
-	files, err := normalizeFlags(af, flag.Args())
+	args, err := normalizeFlags(af, flag.Args())
 	if err == nil {
-		err = doActions(af, files)
+		err = doActions(af, args)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)

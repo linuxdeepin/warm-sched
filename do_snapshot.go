@@ -101,8 +101,8 @@ func takeSnapshot(mps []string) (*Snapshot, error) {
 	return snap, nil
 }
 
-func TakeSnapshot(dirs []string, fname string) error {
-	snap, err := takeSnapshot(dirs)
+func TakeSnapshot(scanMountPoints []string, fname string) error {
+	snap, err := takeSnapshot(scanMountPoints)
 	if err != nil {
 		return err
 	}

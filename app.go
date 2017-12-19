@@ -18,13 +18,13 @@ func EnumerateAllApps(cacheDir string) []string {
 	return all
 }
 
-func TakeApplicationSnapshot(cacheDir string, identiFile string) error {
+func TakeApplicationSnapshot(cacheDir string, scans []string, identiFile string) error {
 	files, err := runAndRecordOpenFiles(identiFile, "")
 	if err != nil {
 		return err
 	}
 
-	app, err := takeSnapshot(ListMountPoints())
+	app, err := takeSnapshot(scans)
 	if err != nil {
 		return err
 	}
