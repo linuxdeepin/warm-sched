@@ -128,6 +128,13 @@ func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
 	return MemRange{offset, s - offset}, nil
 }
 
+func IsInPlymouthEnv() bool {
+	if _, err := exec.LookPath("plymouth"); err != nil {
+		return false
+	}
+	return exec.Command("pgrep", "plymouthd").Run() == nil
+}
+
 func ListMountPoints() []string {
 	cmd := exec.Command("/bin/df",
 		"-t", "ext2",

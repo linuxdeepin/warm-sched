@@ -89,7 +89,7 @@ func main() {
 	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
 
 	flag.BoolVar(&af.wait, "wait", true, "wait load completed")
-	flag.BoolVar(&af.ply, "plymouth", false, "report progress to plymouth")
+	flag.BoolVar(&af.ply, "plymouth", IsInPlymouthEnv(), "report progress to plymouth")
 
 	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
