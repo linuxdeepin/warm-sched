@@ -23,6 +23,14 @@ func FileExists(f string) bool {
 	return true
 }
 
+func TryMkdir(d string) error {
+	info, err := os.Stat(d)
+	if err == nil && !info.IsDir() {
+		return fmt.Errorf("%q is not a directory", d)
+	}
+	return os.MkdirAll(d, 0755)
+}
+
 func humanSize(s int) string {
 	if s > GB {
 		return fmt.Sprintf("%0.2fG", float32(s)/float32(GB))

@@ -53,13 +53,21 @@ func doActions(af AppFlags, args []string) error {
 	case af.loadFull:
 		err = LoadFull(af.cacheDir)
 	case af.takeApp:
+		err = TryMkdir(af.cacheDir)
+		if err != nil {
+			return err
+		}
 		err = TakeApplicationSnapshot(af.cacheDir, af.scanMountPoints, args[0])
 	case af.takeS:
-		err = TakeSnapshot(af.scanMountPoints, args[0])
+		err = TryMkdir(af.cacheDir)
+		if err != nil {
+			return err
+		}
+		err = TakeSnapshot(af.scanMountPoints, path.Join(af.cacheDir, args[0]))
 	case af.loadS:
-		err = LoadSnapshot(args[0], af.wait, af.ply)
+		err = LoadSnapshot(path.Join(af.cacheDir, args[0]), af.wait, af.ply)
 	case af.showS:
-		err = ShowSnapshot(args[0])
+		err = ShowSnapshot(path.Join(af.cacheDir, args[0]))
 	default:
 		err = DumpCurrentPageCache(af.scanMountPoints)
 	}
@@ -78,7 +86,7 @@ func main() {
 	var af AppFlags
 	af.scanMountPoints = ListMountPoints()
 
-	flag.StringVar(&af.cacheDir, "cacheDir", "/var/cache/warm-sched", "base cache directory")
+	flag.StringVar(&af.cacheDir, "cacheDir", "./warm-sched-cache", "base cache directory")
 	flag.Var(&af.scanMountPoints, "scanMountPoints", "The mount points to scan.")
 
 	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
