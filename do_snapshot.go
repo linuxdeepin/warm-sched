@@ -117,14 +117,9 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 		return err
 	}
 
-	n := len(snap)/20 + 1
-	for i, r := range snap {
+	for _, r := range snap {
 		if BlackDirectory.ShouldSkip(r.Name) {
 			continue
-		}
-
-		if ply && i%n == 0 {
-			go ShowPlymouthMessage(fmt.Sprintf("--text=%s -- %d%%", r.Name, i*5/n))
 		}
 
 		var err error

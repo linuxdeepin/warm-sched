@@ -66,14 +66,6 @@ func SystemMemoryInfo() int64 {
 	return 0
 }
 
-func ShowPlymouthMessage(msg string) {
-	cmd := exec.Command("plymouth", "display-message", msg)
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("PLY:%v %v\n", err, cmd.Args)
-	}
-}
-
 func splitPageRange(r PageRange, mc int) []PageRange {
 	var ret []PageRange
 	if r.Count <= mc {
@@ -142,13 +134,6 @@ func toRange(vec []bool) (PageRange, []bool) {
 		s++
 	}
 	return PageRange{offset, s - offset}, vec[s:]
-}
-
-func IsInPlymouthEnv() bool {
-	if _, err := exec.LookPath("plymouth"); err != nil {
-		return false
-	}
-	return exec.Command("pgrep", "plymouthd").Run() == nil
 }
 
 func ListMountPoints() []string {
