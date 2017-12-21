@@ -22,7 +22,7 @@ type Snapshot struct {
 
 type SnapshotItem struct {
 	Name   string
-	Ranges []MemRange
+	Ranges []PageRange
 }
 
 func (i SnapshotItem) String() string {

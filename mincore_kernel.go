@@ -111,15 +111,15 @@ func buildInodeFromKernel(fname string, bn int64, filePages int64, mapping strin
 	}, nil
 }
 
-func parseMapRange(raw string) ([]MemRange, error) {
-	mc := make([]MemRange, 0)
+func parseMapRange(raw string) ([]PageRange, error) {
+	mc := make([]PageRange, 0)
 	var start, end int
 	for _, r := range strings.Split(raw, ",") {
 		_, err := fmt.Sscanf(r, "[%d:%d]", &start, &end)
 		if err != nil {
 			break
 		}
-		mc = append(mc, MemRange{
+		mc = append(mc, PageRange{
 			Offset: start,
 			Count:  end - start + 1,
 		})

@@ -74,25 +74,41 @@ func ShowPlymouthMessage(msg string) {
 	}
 }
 
-func AdjustToMaxAdviseRange(s int64, maxUnit int) []MemRange {
-	bs := int(RoundPageSize(s))
-	n := (bs + maxUnit - 1) / maxUnit
-	var ret []MemRange
-	for i := 0; i < int(n); i++ {
-		ret = append(ret, MemRange{
-			Offset: i * maxUnit,
-			Count:  maxUnit,
-		})
+func splitPageRange(r PageRange, mc int) []PageRange {
+	var ret []PageRange
+	if r.Count <= mc {
+		ret = append(ret, r)
+	} else {
+		i := PageRange{
+			Offset: r.Offset,
+			Count:  mc,
+		}
+		j := PageRange{
+			Offset: r.Offset + mc,
+			Count:  r.Count - mc,
+		}
+		ret = append(ret, i)
+		ret = append(ret, splitPageRange(j, mc)...)
 	}
 	return ret
 }
 
-func ToRanges(vec []bool, maxUnit int) []MemRange {
-	var ret []MemRange
-	var i MemRange
+func PageRangeToSizeRange(pageSize int, maxPageCount int, rs ...PageRange) [][2]int {
+	var ret [][2]int
+	for _, r := range rs {
+		for _, rr := range splitPageRange(r, maxPageCount) {
+			ret = append(ret, [2]int{rr.Offset * pageSize, rr.Count * pageSize})
+		}
+	}
+	return ret
+}
+
+func ToRanges(vec []bool) []PageRange {
+	var ret []PageRange
+	var i PageRange
 	var pos = -1
 	for {
-		i, vec = toRange(vec, maxUnit)
+		i, vec = toRange(vec)
 		if i.Offset == -1 {
 			break
 		}
@@ -109,7 +125,7 @@ func ToRanges(vec []bool, maxUnit int) []MemRange {
 	return ret
 }
 
-func toRange(vec []bool, maxUnit int) (MemRange, []bool) {
+func toRange(vec []bool) (PageRange, []bool) {
 	var s int
 	var offset = -1
 	var found = false
@@ -120,12 +136,12 @@ func toRange(vec []bool, maxUnit int) (MemRange, []bool) {
 		if v {
 			found = true
 		}
-		if (s-offset) >= maxUnit || (!v && found) {
+		if !v && found {
 			break
 		}
 		s++
 	}
-	return MemRange{offset, s - offset}, vec[s:]
+	return PageRange{offset, s - offset}, vec[s:]
 }
 
 func IsInPlymouthEnv() bool {

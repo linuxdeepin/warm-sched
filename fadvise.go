@@ -9,11 +9,9 @@ import (
 const (
 	AdviseLoad = unix.FADV_WILLNEED
 	AdviseDrop = unix.FADV_DONTNEED
-
-	MaxAdvisePageCount = 32
 )
 
-func Readahead(fname string, rs []MemRange) error {
+func Readahead(fname string, rs []PageRange) error {
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0755)
 	if err != nil {
 		return err
@@ -23,13 +21,14 @@ func Readahead(fname string, rs []MemRange) error {
 	if len(rs) == 0 {
 		var finfo syscall.Stat_t
 		syscall.Stat(fname, &finfo)
-		rs = AdjustToMaxAdviseRange(finfo.Size, MaxAdvisePageCount)
+		rs = []PageRange{PageRange{0, RoundPageCount(finfo.Size)}}
 	}
-	for _, r := range rs {
+	for _, r := range PageRangeToSizeRange(PageSize, 32, rs...) {
 		_, _, e := syscall.Syscall(syscall.SYS_READAHEAD,
 			uintptr(fd),
-			uintptr(r.Offset*PageSize),
-			uintptr(r.Count*PageSize))
+			uintptr(r[0]),
+			uintptr(r[1]),
+		)
 		if e != 0 {
 			fmt.Println("E:", e)
 		}
@@ -37,7 +36,7 @@ func Readahead(fname string, rs []MemRange) error {
 	return nil
 }
 
-func FAdvise(fname string, rs []MemRange, action int) error {
+func FAdvise(fname string, rs []PageRange, action int) error {
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0755)
 	if err != nil {
 		return err
@@ -47,23 +46,21 @@ func FAdvise(fname string, rs []MemRange, action int) error {
 	if len(rs) == 0 {
 		var finfo syscall.Stat_t
 		syscall.Stat(fname, &finfo)
-		switch action {
-		case AdviseLoad:
-			// fadvise(2) decline the request if size is
-			// greater than MaxAdviseSize.
-			rs = AdjustToMaxAdviseRange(finfo.Size, MaxAdvisePageCount)
-		case AdviseDrop:
-			rs = append(rs, MemRange{0, RoundPageCount(finfo.Size)})
-		default:
-			panic("Unknown Action")
-		}
+		rs = append(rs, PageRange{0, RoundPageCount(finfo.Size)})
 	}
-	return fadvise(fd, rs, action)
-}
 
-func fadvise(fd int, rs []MemRange, action int) error {
-	for _, r := range rs {
-		err := unix.Fadvise(fd, int64(r.Offset*PageSize), int64(r.Count*PageSize), action)
+	var maxUnit int
+	switch action {
+	case AdviseLoad:
+		maxUnit = 32
+	case AdviseDrop:
+		maxUnit = 1000000
+	default:
+		panic("Unknown Action")
+	}
+
+	for _, r := range PageRangeToSizeRange(PageSize, maxUnit, rs...) {
+		err := unix.Fadvise(fd, int64(r[0]), int64(r[1]), action)
 		if err != nil {
 			return err
 		}

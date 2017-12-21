@@ -125,7 +125,7 @@ func fileMincore(fname string) (Inode, error) {
 	return Inode{
 		Name:    fname,
 		Size:    uint64(sinfo.Size),
-		Mapping: ToRanges(mc, inCache),
+		Mapping: ToRanges(mc),
 
 		dev:    sinfo.Dev,
 		sector: sector,

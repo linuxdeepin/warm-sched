@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type MemRange struct {
+type PageRange struct {
 	Offset int
 	Count  int
 }
@@ -15,7 +15,7 @@ var PageSize = os.Getpagesize()
 
 type Inode struct {
 	Name    string
-	Mapping []MemRange
+	Mapping []PageRange
 	Size    uint64
 
 	dev    uint64
