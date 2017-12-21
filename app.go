@@ -32,7 +32,7 @@ func TakeApplicationSnapshot(cacheDir string, scans []string, identifyFile strin
 	app.Always(files)
 	fmt.Printf("Mark %d files as directly dependence\n", len(files))
 
-	reduceSnapshot(app, path.Join(cacheDir, SnapFull))
+	reduceSnapshot(app, path.Join(cacheDir, SnapBasic))
 
 	fname := path.Join(cacheDir, "apps", path.Base(identifyFile))
 	for _, other := range EnumerateAllApps(cacheDir) {

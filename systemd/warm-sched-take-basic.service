@@ -1,11 +1,10 @@
 [Unit]
-Description=Take PageCache snapshot for Basic
+Description=Take basic PageCache and increase boot times 
 After=systemd-user-sessions.service display-manager.service
 Before=warm-sched-load-full.service    
-ConditionPathExists=!/var/cache/warm-sched/snap-basic
 
 [Service]
-ExecStart=/bin/warm-sched -cacheDir=/var/cache/warm-sched -take snap-basic
+ExecStart=/bin/warm-sched -cacheDir=/var/cache/warm-sched -take-basic
 
 [Install]
 WantedBy=default.target

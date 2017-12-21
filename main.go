@@ -4,49 +4,50 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 )
 
 var debug = false
 
-const (
-	SnapFull = "snap-full"
-)
-
 type AppFlags struct {
-	takeS bool
-	loadS bool
-	showS bool
+	apply      bool // action of applying a snapshot
+	applyAll   bool // action of applying DE snapshot and properly application's snapshots
+	applyBasic bool // action of applying boot snapshot
 
-	loadFull bool
+	showSnapshot bool // action of showing a snapshot
+	showInfo     bool // action of dump history database
+	showCurrent  bool // action of taking a snapshot with current Page Cache
 
-	increaseBootTimes bool
+	takeDesktop bool
+	takeBasic   bool
+	takeApp     bool // action of taking a application's snapshot. TODO: use -base to implement this logical
 
-	showDB      bool
-	showCurrent bool
-
-	cacheDir string
-
-	scanMountPoints stringSlice
-
-	takeApp bool
+	cacheDir        string      // the base cache directory.
+	scanMountPoints stringSlice // the which mount points will be used when taking a snapshot
 }
 
-func normalizeFlags(af AppFlags, args []string) ([]string, error) {
-	var err error
-	switch {
-	case af.takeApp:
-		if len(args) != 1 {
-			return nil, fmt.Errorf("Please specify the applicaton's identify file path.")
-		}
-	case af.takeS, af.loadS, af.showS:
-		if len(args) != 1 {
-			return nil, fmt.Errorf("Please specify the snapshot name to handle.")
-		}
-	default:
-		args = af.scanMountPoints
-	}
-	return args, err
+func InitFlags() AppFlags {
+	var af AppFlags
+	af.scanMountPoints = ListMountPoints()
+
+	flag.StringVar(&af.cacheDir, "cacheDir", "./warm-sched-cache", "base cache directory")
+	//	flag.Var(&af.scanMountPoints, "scanMountPoints", "The mount points to scan.")
+	//	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
+	flag.BoolVar(&debug, "debug", false, "debug mode")
+
+	flag.BoolVar(&af.showInfo, "info", false, "dump history database")
+	flag.BoolVar(&af.showCurrent, "c", false, "shwo current page cache info")
+	flag.BoolVar(&af.showSnapshot, "show", false, "show content of the snapshot")
+
+	flag.BoolVar(&af.apply, "apply", false, "apply the snapshot")
+	flag.BoolVar(&af.applyBasic, "apply-basic", false, "apply boot snapshot and increasing boo-times")
+	flag.BoolVar(&af.applyAll, "apply-all", false, "apply full snapshot then load all applications snapshot")
+
+	flag.BoolVar(&af.takeBasic, "take-basic", false, "taking boot snapshot and increasing boo-times")
+	flag.BoolVar(&af.takeDesktop, "take-desktop", false, "take the desktop environment snapshot")
+	flag.BoolVar(&af.takeApp, "take", false, "take application of the snapshot")
+
+	flag.Parse()
+	return af
 }
 
 func doActions(af AppFlags, args []string) error {
@@ -54,26 +55,26 @@ func doActions(af AppFlags, args []string) error {
 	if err != nil {
 		return err
 	}
-	if af.increaseBootTimes {
-		err = m.IncreaseBootTimes()
-	}
-
 	switch {
-	case af.showDB:
-		err = m.ShowHistory()
-	case af.loadFull:
-		err = LoadFull(af.cacheDir)
+	case af.takeBasic:
+		err = m.TakeBasic()
+	case af.takeDesktop:
+		err = m.TakeDesktop()
 	case af.takeApp:
-		err = TryMkdir(af.cacheDir)
-		if err != nil {
-			return err
+		if len(args) < 1 {
+			flag.Usage()
+			os.Exit(1)
 		}
-		err = TakeApplicationSnapshot(af.cacheDir, af.scanMountPoints, args[0])
-	case af.takeS:
-		err = m.TakeSnapshot(args[0])
-	case af.loadS:
-		err = m.LoadSnapshot(args[0])
-	case af.showS:
+		err = m.TakeApplication(args[0])
+	case af.applyAll:
+		err = m.ApplyAll()
+	case af.applyBasic:
+		err = m.ApplyBasic()
+	case af.showSnapshot:
+		if len(args) < 1 {
+			flag.Usage()
+			os.Exit(1)
+		}
 		err = m.ShowSnapshot(args[0])
 	case af.showCurrent:
 		err = DumpCurrentPageCache(af.scanMountPoints)
@@ -83,39 +84,9 @@ func doActions(af AppFlags, args []string) error {
 	return err
 }
 
-func LoadFull(baseDir string) error {
-	err := LoadSnapshot(path.Join(baseDir, SnapFull), false)
-	for _, app := range EnumerateAllApps(baseDir) {
-		err = LoadSnapshot(app, true)
-	}
-	return err
-}
-
 func main() {
-	var af AppFlags
-	af.scanMountPoints = ListMountPoints()
-
-	flag.StringVar(&af.cacheDir, "cacheDir", "./warm-sched-cache", "base cache directory")
-	flag.Var(&af.scanMountPoints, "scanMountPoints", "The mount points to scan.")
-	flag.BoolVar(&af.showDB, "info", false, "shwo the snapshot informations")
-	flag.BoolVar(&af.showCurrent, "c", false, "shwo current page cache info")
-	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
-	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")
-	flag.BoolVar(&af.showS, "show", false, "show content of the snapshot")
-
-	flag.BoolVar(&af.increaseBootTimes, "increase-boottimes", false, "DON'T do this.")
-
-	flag.BoolVar(&af.loadFull, "load-full", false, "load full snapshot then load all applications snapshot")
-	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
-
-	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
-	flag.BoolVar(&debug, "debug", false, "debug mode")
-
-	flag.Parse()
-	args, err := normalizeFlags(af, flag.Args())
-	if err == nil {
-		err = doActions(af, args)
-	}
+	af := InitFlags()
+	err := doActions(af, flag.Args())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)
 	}

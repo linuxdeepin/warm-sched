@@ -1,2 +1,2 @@
 #!/bin/bash
-pkexec /bin/warm-sched -cacheDir=/var/cache/warm-sched -take snap-full
+pkexec /bin/warm-sched -cacheDir=/var/cache/warm-sched -take-desktop

@@ -27,15 +27,12 @@ func (m *Manager) identifyFileToPath(i string) string {
 	return path.Join(m.cacheDir, Hash(i)+".snap")
 }
 
-func (m *Manager) TakeSnapshot(identifyFile string) error {
+func (m *Manager) takeSnapshot(identifyFile string, t SnapshotType) error {
 	snap, err := takeSnapshot(identifyFile, m.scanPoints)
 	if err != nil {
 		return err
 	}
-	err = m.history.Update(snap)
-	if err != nil {
-		return err
-	}
+	m.history.UpdateSnapshot(snap, t)
 	err = m.history.Save()
 	if err != nil {
 		return err
@@ -48,22 +45,39 @@ func (m *Manager) ShowSnapshot(identifyFile string) error {
 	return ShowSnapshot(name)
 }
 
-func (m *Manager) LoadSnapshot(identifyFile string) error {
+func (m *Manager) ShowHistory() error {
+	fmt.Println(m.history)
+	return nil
+}
+
+func (m *Manager) TakeBasic() error {
+	return m.takeSnapshot(SnapBasic, SnapshotTypeBasic)
+}
+func (m *Manager) TakeDesktop() error {
+	return m.takeSnapshot(SnapDesktop, SnapshotTypeDesktop)
+}
+func (m *Manager) TakeApplication(id string) error {
+	return m.takeSnapshot(id, SnapshotTypeApp)
+}
+
+func (m *Manager) ApplySnapshot(identifyFile string) error {
 	name := m.identifyFileToPath(identifyFile)
-	m.history.Count(identifyFile)
+	return LoadSnapshot(name, false)
+}
+func (m *Manager) ApplyBasic() error {
+	m.history.BootTimes++
 	err := m.history.Save()
 	if err != nil {
 		return err
 	}
-	return LoadSnapshot(name, false)
+	return m.ApplySnapshot(SnapBasic)
 }
+func (m *Manager) ApplyAll() error {
+	m.ApplySnapshot(SnapDesktop)
 
-func (m *Manager) IncreaseBootTimes() error {
-	m.history.BootTimes++
-	return m.history.Save()
-}
-
-func (m *Manager) ShowHistory() error {
-	fmt.Println(m.history)
+	// Try find which snapshots will be applied
+	for id := range m.history.AppsInfo {
+		m.ApplySnapshot(id)
+	}
 	return nil
 }
