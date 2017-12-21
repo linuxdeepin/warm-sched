@@ -88,11 +88,6 @@ func collectMincores(ch chan<- Inode, mntPoint string) {
 			fmt.Printf("E:%q %v\n", line, err)
 			break
 		}
-
-		if debug {
-			VerifyBySyscall(info)
-		}
-
 		ch <- info
 	}
 }

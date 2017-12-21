@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/sys/unix"
 	"syscall"
 )
 
 const (
-	AdviseLoad = unix.FADV_WILLNEED
-	AdviseDrop = unix.FADV_DONTNEED
+	AdviseLoad = syscall.MADV_WILLNEED
+	AdviseDrop = syscall.MADV_DONTNEED
 )
 
 func Readahead(fname string, rs []PageRange) error {
@@ -60,8 +59,13 @@ func FAdvise(fname string, rs []PageRange, action int) error {
 	}
 
 	for _, r := range PageRangeToSizeRange(PageSize, maxUnit, rs...) {
-		err := unix.Fadvise(fd, int64(r[0]), int64(r[1]), action)
-		if err != nil {
+		_, _, errno := syscall.Syscall6(syscall.SYS_FADVISE64,
+			uintptr(fd),
+			uintptr(r[0]),
+			uintptr(r[1]),
+			uintptr(action),
+			0, 0)
+		if errno != 0 {
 			return err
 		}
 	}

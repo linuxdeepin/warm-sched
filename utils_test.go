@@ -1,8 +1,10 @@
 package main
 
 import (
+	"golang.org/x/sys/unix"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestRangeStartWithTrues(t *testing.T) {
@@ -14,6 +16,58 @@ func TestRangeStartWithTrues(t *testing.T) {
 
 	if r := ToRanges(vec); !reflect.DeepEqual(r, ret) {
 		t.Fatalf("Expect %v, but got %v", ret, r)
+	}
+}
+
+func createFile(name string, pageCount int) string {
+	return "../dddd"
+}
+
+func randomePageRange(maxCount int) []PageRange {
+	return []PageRange{
+		PageRange{0, 1},
+		PageRange{2, 1},
+		PageRange{4, 1},
+		PageRange{11, 1},
+	}
+}
+
+func TestLoad(t *testing.T) {
+	a := createFile("A", 50)
+
+	// 1. drop file A
+	err := FAdvise(a, nil, AdviseDrop)
+	if err != nil {
+		t.Fatalf("Can't drop %s' page cache", a)
+	}
+	time.Sleep(time.Second)
+
+	// 2. check result A
+	i, err := fileMincore(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(i.Mapping) != 0 {
+		t.Fatal("Drop failed", i.Mapping)
+	}
+
+	// 3. load random pages
+	rs := randomePageRange(50)
+
+	err = FAdvise(a, rs, AdviseLoad)
+	if err != nil {
+		t.Fatal("Failed excute AdviseLoad", err)
+	}
+	time.Sleep(time.Second)
+
+	i, err = fileMincore(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 3. check loaded pages
+	if !reflect.DeepEqual(i.Mapping, rs) {
+		t.Fatalf("Except %v, but got %v", rs, i.Mapping)
 	}
 }
 
@@ -61,5 +115,21 @@ func TestBitsToPageRange(t *testing.T) {
 	}
 	if r := ToRanges([]bool{}); len(r) != 0 {
 		t.Fatal("None Empty Set", r)
+	}
+}
+
+func TestVerifyMincores(t *testing.T) {
+	ch := make(chan Inode)
+	go ProduceByKernel(ch, []string{"/"})
+	for i := range ch {
+		if err := VerifyBySyscall(i); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+func TestEnsureAdviseConst(t *testing.T) {
+	if (unix.FADV_DONTNEED != AdviseDrop) ||
+		(unix.FADV_WILLNEED != AdviseLoad) {
+		t.Fatal()
 	}
 }

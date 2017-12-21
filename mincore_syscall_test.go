@@ -155,15 +155,18 @@ func GetSectorNumber(fd uintptr) uint64 {
 	return uint64(b)
 }
 
-func VerifyBySyscall(info Inode) {
+func VerifyBySyscall(info Inode) error {
+	if err := syscall.Access(info.Name, unix.R_OK); err != nil {
+		return nil
+	}
 	info2, err := fileMincore(info.Name)
 	if err != nil {
-		fmt.Println("The mincore failed:", err)
-		return
+		return err
 	}
 	r1, r2 := info.Mapping, info2.Mapping
 	if !reflect.DeepEqual(r1, r2) {
-		fmt.Printf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
+		return fmt.Errorf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
 			r1, int(info.Size)/PageSize, r2, int(info2.Size)/PageSize)
 	}
+	return nil
 }
