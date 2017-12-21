@@ -36,14 +36,15 @@ func humanSize(s int) string {
 }
 
 func RoundPageSize(s int64) int64 {
-	n := (s + PageSize64 - 1) / PageSize64
-	return n * PageSize64
+	return int64(RoundPageCount(s)) * PageSize64
 }
 
-var ZeroFileInfo = FileCacheInfo{}
-var PageSize = os.Getpagesize()
+func RoundPageCount(s int64) int {
+	return int((s + PageSize64 - 1) / PageSize64)
+}
+
 var PageSize64 = int64(PageSize)
-var PageSizeKB = os.Getpagesize() / KB
+var PageSizeKB = PageSize / KB
 
 func SystemMemoryInfo() int64 {
 	bs, err := ioutil.ReadFile("/proc/meminfo")
@@ -73,31 +74,32 @@ func ShowPlymouthMessage(msg string) {
 	}
 }
 
-func FullRanges(fileSize int64) []MemRange {
-	n := (fileSize + MaxAdviseSize - 1) / MaxAdviseSize
+func AdjustToMaxAdviseRange(s int64, maxUnit int) []MemRange {
+	bs := int(RoundPageSize(s))
+	n := (bs + maxUnit - 1) / maxUnit
 	var ret []MemRange
 	for i := 0; i < int(n); i++ {
 		ret = append(ret, MemRange{
-			Offset: int64(i) * MaxAdviseSize,
-			Length: MaxAdviseSize,
+			Offset: i * maxUnit,
+			Count:  maxUnit,
 		})
 	}
 	return ret
 }
 
-func ToRanges(vec []bool, pageSize int64) []MemRange {
+func ToRanges(vec []bool, maxUnit int) []MemRange {
 	var ret []MemRange
 	var i MemRange
-	var pos int64 = -1
+	var pos = -1
 	for {
-		i, vec = toRange(vec, pageSize)
+		i, vec = toRange(vec, maxUnit)
 		if i.Offset == -1 {
 			break
 		}
 		if pos != -1 {
 			i.Offset += pos
 		}
-		pos = i.Offset + i.Length
+		pos = i.Offset + i.Count
 
 		ret = append(ret, i)
 		if len(vec) == 0 {
@@ -107,25 +109,23 @@ func ToRanges(vec []bool, pageSize int64) []MemRange {
 	return ret
 }
 
-func toRange(vec []bool, pageSize int64) (MemRange, []bool) {
-	var s int64
-	var offset int64 = -1
+func toRange(vec []bool, maxUnit int) (MemRange, []bool) {
+	var s int
+	var offset = -1
+	var found = false
 	for i, v := range vec {
-		if v && offset < 0 {
-			offset = int64(i) * pageSize
+		if !found && v {
+			offset = i
 		}
-		if !v && offset > 0 {
-			return MemRange{offset, s - offset}, vec[i:]
+		if v {
+			found = true
 		}
-
-		length := s - offset
-		s += pageSize
-		if length >= MaxAdviseSize {
-			return MemRange{offset, length}, vec[i:]
+		if (s-offset) >= maxUnit || (!v && found) {
+			break
 		}
-
+		s++
 	}
-	return MemRange{offset, s - offset}, nil
+	return MemRange{offset, s - offset}, vec[s:]
 }
 
 func IsInPlymouthEnv() bool {

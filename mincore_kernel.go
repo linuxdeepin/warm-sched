@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -20,7 +19,7 @@ func SupportProduceByKernel() error {
 	return nil
 }
 
-func ProduceByKernel(ch chan<- FileCacheInfo, mps []string) {
+func ProduceByKernel(ch chan<- Inode, mps []string) {
 	defer close(ch)
 	for _, t := range mps {
 		collectMincores(ch, t)
@@ -44,7 +43,7 @@ func CalcRealTargets(dirs []string, mps []string) []string {
 	return ret
 }
 
-func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
+func collectMincores(ch chan<- Inode, mntPoint string) {
 	if mntPoint != "" && mntPoint != "." {
 		wd, _ := os.Getwd()
 		defer os.Chdir(wd)
@@ -79,7 +78,7 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 			continue
 		}
 
-		info, err := buildFileCacheInfoFromKernel(
+		info, err := buildInodeFromKernel(
 			fname,
 			bn,
 			s,
@@ -91,57 +90,39 @@ func collectMincores(ch chan<- FileCacheInfo, mntPoint string) {
 		}
 
 		if debug {
-			verifyBySyscall(info)
+			VerifyBySyscall(info)
 		}
 
 		ch <- info
 	}
 }
 
-func verifyBySyscall(info FileCacheInfo) {
-	info2, err := fileMincore(info.FName)
+func buildInodeFromKernel(fname string, bn int64, filePages int64, mapping string) (Inode, error) {
+	bm, err := parseMapRange(mapping)
 	if err != nil {
-		fmt.Println("The mincore failed:", err)
-		return
+		return Inode{}, err
 	}
-	r1, r2 := ToRanges(info.InCache, 1), ToRanges(info2.InCache, 1)
-	if !reflect.DeepEqual(r1, r2) {
-		fmt.Printf("WTF: %s \n\t%v\n\t%v\n", info2.FName, info.InCache, info2.InCache)
-	}
-}
-
-func buildFileCacheInfoFromKernel(fname string, bn int64, filePages int64, mapping string) (FileCacheInfo, error) {
-	inN, bm, err := parseMapRange(filePages, mapping)
-	if err != nil {
-		return ZeroFileInfo, err
-	}
-	return FileCacheInfo{
-		FName:   fname,
+	return Inode{
+		Name:    fname,
+		Mapping: bm,
+		Size:    uint64(filePages) * uint64(PageSize),
+		dev:     0,
 		sector:  uint64(bn),
-		InCache: bm,
-		InN:     int(inN),
 	}, nil
 }
 
-func parseMapRange(filePages int64, raw string) (int64, []bool, error) {
-	mc := make([]bool, filePages)
-	for i := range mc {
-		mc[i] = false
-	}
-	var start, end int64
-	var total int64
+func parseMapRange(raw string) ([]MemRange, error) {
+	mc := make([]MemRange, 0)
+	var start, end int
 	for _, r := range strings.Split(raw, ",") {
 		_, err := fmt.Sscanf(r, "[%d:%d]", &start, &end)
 		if err != nil {
 			break
 		}
-		total += end - start + 1
-		for i := start; i <= end; i++ {
-			if i >= filePages {
-				return 0, nil, fmt.Errorf("WTF: %d %d\n", i, filePages)
-			}
-			mc[i] = true
-		}
+		mc = append(mc, MemRange{
+			Offset: start,
+			Count:  end - start + 1,
+		})
 	}
-	return total, mc, nil
+	return mc, nil
 }

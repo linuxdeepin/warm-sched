@@ -6,11 +6,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"syscall"
 	"unsafe"
 )
 
-func ProduceBySyscall(ch chan<- FileCacheInfo, dirs []string) {
+func ProduceBySyscall(ch chan<- Inode, dirs []string) {
 	defer close(ch)
 	for _, f := range dirs {
 		info, err := os.Lstat(f)
@@ -21,7 +22,7 @@ func ProduceBySyscall(ch chan<- FileCacheInfo, dirs []string) {
 		if info.IsDir() {
 			err = showDirCacheInfos(f, ch)
 		} else {
-			err = showFileCacheInfo(f, ch)
+			err = showInode(f, ch)
 		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "E:", err)
@@ -29,7 +30,7 @@ func ProduceBySyscall(ch chan<- FileCacheInfo, dirs []string) {
 	}
 }
 
-func showDirCacheInfos(root string, ch chan<- FileCacheInfo) error {
+func showDirCacheInfos(root string, ch chan<- Inode) error {
 	if BlackDirectory.ShouldSkip(root) {
 		return nil
 	}
@@ -47,13 +48,13 @@ func showDirCacheInfos(root string, ch chan<- FileCacheInfo) error {
 		if info.IsDir() {
 			showDirCacheInfos(name, ch)
 		} else {
-			showFileCacheInfo(name, ch)
+			showInode(name, ch)
 		}
 	}
 	return nil
 }
 
-func showFileCacheInfo(fname string, ch chan<- FileCacheInfo) error {
+func showInode(fname string, ch chan<- Inode) error {
 	info, err := fileMincore(fname)
 	if err != nil {
 		return err
@@ -62,31 +63,31 @@ func showFileCacheInfo(fname string, ch chan<- FileCacheInfo) error {
 	return nil
 }
 
-func fileMincore(fname string) (FileCacheInfo, error) {
+func fileMincore(fname string) (Inode, error) {
 	fname, err := filepath.Abs(fname)
 	if err != nil {
-		return ZeroFileInfo, err
+		return Inode{}, err
 	}
 
 	info, err := os.Lstat(fname)
 	if err != nil {
-		return ZeroFileInfo, err
+		return Inode{}, err
 	}
 	if !info.Mode().IsRegular() {
-		return ZeroFileInfo, err
+		return Inode{}, err
 	}
 
 	size := info.Size()
 
 	f, err := os.Open(fname)
 	if err != nil {
-		return ZeroFileInfo, err
+		return Inode{}, err
 	}
 	defer f.Close()
 
 	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
-		return ZeroFileInfo, fmt.Errorf("could not mmap %s: %v", fname, err)
+		return Inode{}, fmt.Errorf("could not mmap %s: %v", fname, err)
 	}
 
 	vecsz := (size + PageSize64 - 1) / PageSize64
@@ -99,7 +100,7 @@ func fileMincore(fname string) (FileCacheInfo, error) {
 
 	ret, _, err := unix.Syscall(unix.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
-		return ZeroFileInfo, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
+		return Inode{}, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
 	}
 	defer unix.Munmap(mmap)
 
@@ -121,13 +122,12 @@ func fileMincore(fname string) (FileCacheInfo, error) {
 
 	sinfo := info.Sys().(*syscall.Stat_t)
 
-	return FileCacheInfo{
-		FName:   fname,
-		InCache: mc,
-		InN:     inCache,
+	return Inode{
+		Name:    fname,
+		Size:    uint64(sinfo.Size),
+		Mapping: ToRanges(mc, inCache),
 
 		dev:    sinfo.Dev,
-		inode:  sinfo.Ino,
 		sector: sector,
 	}, nil
 }
@@ -153,4 +153,17 @@ func GetSectorNumber(fd uintptr) uint64 {
 		fmt.Println("E:", err)
 	}
 	return uint64(b)
+}
+
+func VerifyBySyscall(info Inode) {
+	info2, err := fileMincore(info.Name)
+	if err != nil {
+		fmt.Println("The mincore failed:", err)
+		return
+	}
+	r1, r2 := info.Mapping, info2.Mapping
+	if !reflect.DeepEqual(r1, r2) {
+		fmt.Printf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
+			r1, int(info.Size)/PageSize, r2, int(info2.Size)/PageSize)
+	}
 }

@@ -9,6 +9,8 @@ import (
 const (
 	AdviseLoad = unix.FADV_WILLNEED
 	AdviseDrop = unix.FADV_DONTNEED
+
+	MaxAdvisePageCount = 32
 )
 
 func Readahead(fname string, rs []MemRange) error {
@@ -21,13 +23,13 @@ func Readahead(fname string, rs []MemRange) error {
 	if len(rs) == 0 {
 		var finfo syscall.Stat_t
 		syscall.Stat(fname, &finfo)
-		rs = FullRanges(finfo.Size)
+		rs = AdjustToMaxAdviseRange(finfo.Size, MaxAdvisePageCount)
 	}
 	for _, r := range rs {
 		_, _, e := syscall.Syscall(syscall.SYS_READAHEAD,
 			uintptr(fd),
-			uintptr(r.Offset),
-			uintptr(r.Length))
+			uintptr(r.Offset*PageSize),
+			uintptr(r.Count*PageSize))
 		if e != 0 {
 			fmt.Println("E:", e)
 		}
@@ -45,10 +47,15 @@ func FAdvise(fname string, rs []MemRange, action int) error {
 	if len(rs) == 0 {
 		var finfo syscall.Stat_t
 		syscall.Stat(fname, &finfo)
-		if action == AdviseLoad {
-			rs = FullRanges(finfo.Size)
-		} else {
-			rs = append(rs, MemRange{0, RoundPageSize(finfo.Size)})
+		switch action {
+		case AdviseLoad:
+			// fadvise(2) decline the request if size is
+			// greater than MaxAdviseSize.
+			rs = AdjustToMaxAdviseRange(finfo.Size, MaxAdvisePageCount)
+		case AdviseDrop:
+			rs = append(rs, MemRange{0, RoundPageCount(finfo.Size)})
+		default:
+			panic("Unknown Action")
 		}
 	}
 	return fadvise(fd, rs, action)
@@ -56,7 +63,7 @@ func FAdvise(fname string, rs []MemRange, action int) error {
 
 func fadvise(fd int, rs []MemRange, action int) error {
 	for _, r := range rs {
-		err := unix.Fadvise(fd, r.Offset, r.Length, action)
+		err := unix.Fadvise(fd, int64(r.Offset*PageSize), int64(r.Count*PageSize), action)
 		if err != nil {
 			return err
 		}

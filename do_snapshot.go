@@ -16,7 +16,7 @@ const (
 )
 
 type Snapshot struct {
-	infos  []FileCacheInfo
+	infos  []Inode
 	status map[string]snapshotItemStatus
 }
 
@@ -31,12 +31,12 @@ func (i SnapshotItem) String() string {
 		if i != 0 {
 			ret += ", "
 		}
-		ret += fmt.Sprintf("[%d,%d]", r.Offset, r.Length)
+		ret += fmt.Sprintf("[%d,%d]", r.Offset, r.Count)
 	}
 	return ret
 }
 
-func (s *Snapshot) Add(i FileCacheInfo) {
+func (s *Snapshot) Add(i Inode) {
 	s.infos = append(s.infos, i)
 }
 func (s *Snapshot) Len() int {
@@ -46,9 +46,6 @@ func (s *Snapshot) Less(i, j int) bool {
 	a, b := s.infos[i], s.infos[j]
 
 	if a.dev == b.dev {
-		if a.sector == b.sector {
-			return a.inode < b.inode
-		}
 		return a.sector < b.sector
 	}
 	return a.dev < b.dev
@@ -82,7 +79,7 @@ func ParseSnapshot(fname string) ([]SnapshotItem, error) {
 }
 
 func takeSnapshot(mps []string) (*Snapshot, error) {
-	ch := make(chan FileCacheInfo)
+	ch := make(chan Inode)
 	snap := &Snapshot{
 		status: make(map[string]snapshotItemStatus),
 	}
@@ -92,7 +89,7 @@ func takeSnapshot(mps []string) (*Snapshot, error) {
 	}
 
 	for info := range ch {
-		if info.InN == 0 || BlackDirectory.ShouldSkip(info.FName) {
+		if len(info.Mapping) == 0 || BlackDirectory.ShouldSkip(info.Name) {
 			continue
 		}
 		snap.Add(info)
@@ -146,10 +143,10 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 func (s *Snapshot) ToItems() []SnapshotItem {
 	var ret []SnapshotItem
 	for _, i := range s.infos {
-		if s.status[i.FName] == snapshotItemRemoved {
+		if s.status[i.Name] == snapshotItemRemoved {
 			continue
 		}
-		ret = append(ret, SnapshotItem{i.FName, ToRanges(i.InCache, PageSize64)})
+		ret = append(ret, SnapshotItem{i.Name, i.Mapping})
 	}
 	return ret
 }
@@ -166,7 +163,7 @@ func (s *Snapshot) SaveTo(fname string) error {
 func (s *Snapshot) String() string {
 	var str string
 	for _, i := range s.infos {
-		str += fmt.Sprintf("%s %v\n", i.FName, i.InCache)
+		str += fmt.Sprintf("%s %v\n", i.Name, i.Mapping)
 	}
 	return str
 }

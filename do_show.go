@@ -6,7 +6,7 @@ import (
 )
 
 func DumpCurrentPageCache(dirs []string) error {
-	ch := make(chan FileCacheInfo)
+	ch := make(chan Inode)
 	err := Produce(ch, dirs)
 	if err != nil {
 		return err
@@ -14,17 +14,16 @@ func DumpCurrentPageCache(dirs []string) error {
 	return consumePrint(ch, dirs)
 }
 
-func consumePrint(ch <-chan FileCacheInfo, dirs []string) error {
+func consumePrint(ch <-chan Inode, dirs []string) error {
 	var totalRAMSize, totalFileSize, totalUsedFileSize int
 	var totalFile, usedFile int
 
 	for info := range ch {
 		totalFile++
-		s := info.FileSize()
-		totalFileSize += s
-		if info.InN > 0 {
+		totalFileSize += int(info.Size)
+		if len(info.Mapping) > 0 {
 			usedFile++
-			totalUsedFileSize += s
+			totalUsedFileSize += int(info.Size)
 			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}

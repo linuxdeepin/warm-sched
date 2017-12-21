@@ -2,22 +2,22 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
 type MemRange struct {
-	Offset int64
-	Length int64
+	Offset int
+	Count  int
 }
 
-var MaxAdviseSize = int64(128 * KB)
+var PageSize = os.Getpagesize()
 
-type FileCacheInfo struct {
-	FName   string
-	InCache []bool
-	InN     int
+type Inode struct {
+	Name    string
+	Mapping []MemRange
+	Size    uint64
 
-	inode  uint64
 	dev    uint64
 	sector uint64
 }
@@ -45,7 +45,7 @@ func (ss stringSlice) ShouldSkip(d string) bool {
 	return false
 }
 
-func Produce(ch chan<- FileCacheInfo, mps []string) error {
+func Produce(ch chan<- Inode, mps []string) error {
 	if err := SupportProduceByKernel(); err != nil {
 		return err
 	}
@@ -53,24 +53,25 @@ func Produce(ch chan<- FileCacheInfo, mps []string) error {
 	return nil
 }
 
-func (info FileCacheInfo) String() string {
+func (info Inode) String() string {
 	return fmt.Sprintf("%s\t%d%%\t%s",
 		humanSize(info.RAMSize()),
 		info.Percentage(),
-		info.FName,
+		info.Name,
 	)
 }
 
-func (info FileCacheInfo) Percentage() int {
-	n := len(info.InCache)
-	if n == 0 {
+func (info Inode) Percentage() int {
+	if info.Size == 0 {
 		return 0
 	}
-	return info.InN * 100 / n
+	return 100 * info.RAMSize() / int(info.Size)
 }
-func (info FileCacheInfo) RAMSize() int {
-	return info.InN * PageSize
-}
-func (info FileCacheInfo) FileSize() int {
-	return len(info.InCache) * PageSize
+
+func (info Inode) RAMSize() int {
+	c := 0
+	for _, r := range info.Mapping {
+		c += int(r.Count)
+	}
+	return c * PageSize
 }
