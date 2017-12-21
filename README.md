@@ -57,7 +57,7 @@ preload只收集了进程的elf文件，但UI程序启动还依赖大量的字�
 [样本数据](./sample.list)
 是在deepin 15.4.1 刚进入桌面后启动deepin-terminal后收集
 
-`./warm-sched | sort -hr`
+`./warm-sched -c | sort -hr`
 
 后生成
 

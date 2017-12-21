@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -29,6 +30,10 @@ func TryMkdir(d string) error {
 		return fmt.Errorf("%q is not a directory", d)
 	}
 	return os.MkdirAll(d, 0755)
+}
+
+func Hash(i string) string {
+	return path.Base(i)
 }
 
 func humanSize(s int) string {

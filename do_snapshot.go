@@ -16,34 +16,20 @@ const (
 )
 
 type Snapshot struct {
-	infos  []Inode
+	IdentifyFile string
+	Inodes       []Inode
+
 	status map[string]snapshotItemStatus
 }
 
-type SnapshotItem struct {
-	Name   string
-	Ranges []PageRange
-}
-
-func (i SnapshotItem) String() string {
-	ret := fmt.Sprintf("%s\n\t", i.Name)
-	for i, r := range i.Ranges {
-		if i != 0 {
-			ret += ", "
-		}
-		ret += fmt.Sprintf("[%d,%d]", r.Offset, r.Count)
-	}
-	return ret
-}
-
 func (s *Snapshot) Add(i Inode) {
-	s.infos = append(s.infos, i)
+	s.Inodes = append(s.Inodes, i)
 }
 func (s *Snapshot) Len() int {
-	return len(s.infos)
+	return len(s.Inodes)
 }
 func (s *Snapshot) Less(i, j int) bool {
-	a, b := s.infos[i], s.infos[j]
+	a, b := s.Inodes[i], s.Inodes[j]
 
 	if a.dev == b.dev {
 		return a.sector < b.sector
@@ -51,7 +37,28 @@ func (s *Snapshot) Less(i, j int) bool {
 	return a.dev < b.dev
 }
 func (s *Snapshot) Swap(i, j int) {
-	s.infos[i], s.infos[j] = s.infos[j], s.infos[i]
+	s.Inodes[i], s.Inodes[j] = s.Inodes[j], s.Inodes[i]
+}
+
+func (s *Snapshot) sizes() (int, int) {
+	var ret1, ret2 int
+	for _, r := range s.Inodes {
+		ret1 += r.RAMSize()
+		ret2 += int(r.Size)
+	}
+	return ret1, ret2
+}
+func (s *Snapshot) String() string {
+	ramSize, fileSize := s.sizes()
+	if fileSize == 0 {
+		fileSize = 1
+	}
+	return fmt.Sprintf("%q contains %d files, will occupy %s RAM size, about %d%% of total files",
+		s.IdentifyFile,
+		s.Len(),
+		humanSize(ramSize),
+		ramSize*100/fileSize,
+	)
 }
 
 func ShowSnapshot(fname string) error {
@@ -59,29 +66,28 @@ func ShowSnapshot(fname string) error {
 	if err != nil {
 		return err
 	}
-	for _, r := range snap {
-		fmt.Printf("%v\n", r.Name)
-	}
+	fmt.Println(snap)
 	return nil
 }
 
-func ParseSnapshot(fname string) ([]SnapshotItem, error) {
+func ParseSnapshot(fname string) (*Snapshot, error) {
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err
 	}
-	var snap []SnapshotItem
+	var snap Snapshot
 	err = gob.NewDecoder(f).Decode(&snap)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid snapshot version for %q", fname)
 	}
-	return snap, nil
+	return &snap, nil
 }
 
-func takeSnapshot(mps []string) (*Snapshot, error) {
+func takeSnapshot(identifyFile string, mps []string) (*Snapshot, error) {
 	ch := make(chan Inode)
 	snap := &Snapshot{
-		status: make(map[string]snapshotItemStatus),
+		IdentifyFile: identifyFile,
+		status:       make(map[string]snapshotItemStatus),
 	}
 	err := Produce(ch, mps)
 	if err != nil {
@@ -97,36 +103,30 @@ func takeSnapshot(mps []string) (*Snapshot, error) {
 	return snap, nil
 }
 
-func TakeSnapshot(scanMountPoints []string, fname string) error {
-	snap, err := takeSnapshot(scanMountPoints)
+func TakeSnapshot(scanMountPoints []string, identifyFile string, fname string) error {
+	snap, err := takeSnapshot(identifyFile, scanMountPoints)
 	if err != nil {
 		return err
 	}
-	sort.Sort(snap)
 	return snap.SaveTo(fname)
 }
 
-func LoadSnapshot(fname string, wait bool, ply bool) error {
-	f, err := os.Open(fname)
-	if err != nil {
-		return err
-	}
-	var snap []SnapshotItem
-	err = gob.NewDecoder(f).Decode(&snap)
+func LoadSnapshot(fname string, wait bool) error {
+	snap, err := ParseSnapshot(fname)
 	if err != nil {
 		return err
 	}
 
-	for _, r := range snap {
+	for _, r := range snap.Inodes {
 		if BlackDirectory.ShouldSkip(r.Name) {
 			continue
 		}
 
 		var err error
 		if wait {
-			err = Readahead(r.Name, r.Ranges)
+			err = Readahead(r.Name, r.Mapping)
 		} else {
-			err = FAdvise(r.Name, r.Ranges, AdviseLoad)
+			err = FAdvise(r.Name, r.Mapping, AdviseLoad)
 		}
 		if debug {
 			fmt.Printf("%+v --> %v\n", r, err)
@@ -135,13 +135,16 @@ func LoadSnapshot(fname string, wait bool, ply bool) error {
 	return nil
 }
 
-func (s *Snapshot) ToItems() []SnapshotItem {
-	var ret []SnapshotItem
-	for _, i := range s.infos {
+func (s *Snapshot) ToItems() []Inode {
+	if len(s.status) == 0 {
+		return s.Inodes
+	}
+	var ret []Inode
+	for _, i := range s.Inodes {
 		if s.status[i.Name] == snapshotItemRemoved {
 			continue
 		}
-		ret = append(ret, SnapshotItem{i.Name, i.Mapping})
+		ret = append(ret, i)
 	}
 	return ret
 }
@@ -151,14 +154,6 @@ func (s *Snapshot) SaveTo(fname string) error {
 	if err != nil {
 		return err
 	}
-	ret := s.ToItems()
-	return gob.NewEncoder(f).Encode(ret)
-}
-
-func (s *Snapshot) String() string {
-	var str string
-	for _, i := range s.infos {
-		str += fmt.Sprintf("%s %v\n", i.Name, i.Mapping)
-	}
-	return str
+	sort.Sort(s)
+	return gob.NewEncoder(f).Encode(s)
 }

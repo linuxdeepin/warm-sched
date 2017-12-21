@@ -20,8 +20,10 @@ type AppFlags struct {
 
 	loadFull bool
 
-	wait bool
-	ply  bool
+	increaseBootTimes bool
+
+	showDB      bool
+	showCurrent bool
 
 	cacheDir string
 
@@ -48,8 +50,17 @@ func normalizeFlags(af AppFlags, args []string) ([]string, error) {
 }
 
 func doActions(af AppFlags, args []string) error {
-	var err error
+	m, err := NewManager(af.scanMountPoints, af.cacheDir)
+	if err != nil {
+		return err
+	}
+	if af.increaseBootTimes {
+		err = m.IncreaseBootTimes()
+	}
+
 	switch {
+	case af.showDB:
+		err = m.ShowHistory()
 	case af.loadFull:
 		err = LoadFull(af.cacheDir)
 	case af.takeApp:
@@ -59,25 +70,23 @@ func doActions(af AppFlags, args []string) error {
 		}
 		err = TakeApplicationSnapshot(af.cacheDir, af.scanMountPoints, args[0])
 	case af.takeS:
-		err = TryMkdir(af.cacheDir)
-		if err != nil {
-			return err
-		}
-		err = TakeSnapshot(af.scanMountPoints, path.Join(af.cacheDir, args[0]))
+		err = m.TakeSnapshot(args[0])
 	case af.loadS:
-		err = LoadSnapshot(path.Join(af.cacheDir, args[0]), af.wait, af.ply)
+		err = m.LoadSnapshot(args[0])
 	case af.showS:
-		err = ShowSnapshot(path.Join(af.cacheDir, args[0]))
-	default:
+		err = m.ShowSnapshot(args[0])
+	case af.showCurrent:
 		err = DumpCurrentPageCache(af.scanMountPoints)
+	default:
+		err = m.ShowHistory()
 	}
 	return err
 }
 
 func LoadFull(baseDir string) error {
-	err := LoadSnapshot(path.Join(baseDir, SnapFull), true, false)
+	err := LoadSnapshot(path.Join(baseDir, SnapFull), false)
 	for _, app := range EnumerateAllApps(baseDir) {
-		err = LoadSnapshot(app, true, false)
+		err = LoadSnapshot(app, true)
 	}
 	return err
 }
@@ -88,15 +97,16 @@ func main() {
 
 	flag.StringVar(&af.cacheDir, "cacheDir", "./warm-sched-cache", "base cache directory")
 	flag.Var(&af.scanMountPoints, "scanMountPoints", "The mount points to scan.")
-
+	flag.BoolVar(&af.showDB, "info", false, "shwo the snapshot informations")
+	flag.BoolVar(&af.showCurrent, "c", false, "shwo current page cache info")
 	flag.BoolVar(&af.takeS, "take", false, "take a snapshot")
 	flag.BoolVar(&af.loadS, "load", false, "load the snapshot")
 	flag.BoolVar(&af.showS, "show", false, "show content of the snapshot")
 
+	flag.BoolVar(&af.increaseBootTimes, "increase-boottimes", false, "DON'T do this.")
+
 	flag.BoolVar(&af.loadFull, "load-full", false, "load full snapshot then load all applications snapshot")
 	flag.BoolVar(&af.takeApp, "take-app", false, "take snapshot of the snapshot")
-
-	flag.BoolVar(&af.wait, "wait", true, "wait load completed")
 
 	flag.Var(&BlackDirectory, "black", "List of blacklist directory")
 	flag.BoolVar(&debug, "debug", false, "debug mode")

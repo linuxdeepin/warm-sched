@@ -18,23 +18,23 @@ func EnumerateAllApps(cacheDir string) []string {
 	return all
 }
 
-func TakeApplicationSnapshot(cacheDir string, scans []string, identiFile string) error {
-	files, err := runAndRecordOpenFiles(identiFile, "")
+func TakeApplicationSnapshot(cacheDir string, scans []string, identifyFile string) error {
+	files, err := runAndRecordOpenFiles(identifyFile, "")
 	if err != nil {
 		return err
 	}
 
-	app, err := takeSnapshot(scans)
+	app, err := takeSnapshot(identifyFile, scans)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Collected %d files for %q\n", len(app.infos), identiFile)
+	fmt.Printf("Collected %d files for %q\n", len(app.Inodes), identifyFile)
 	app.Always(files)
 	fmt.Printf("Mark %d files as directly dependence\n", len(files))
 
 	reduceSnapshot(app, path.Join(cacheDir, SnapFull))
 
-	fname := path.Join(cacheDir, "apps", path.Base(identiFile))
+	fname := path.Join(cacheDir, "apps", path.Base(identifyFile))
 	for _, other := range EnumerateAllApps(cacheDir) {
 		if other == fname {
 			continue
@@ -54,12 +54,12 @@ func TakeApplicationSnapshot(cacheDir string, scans []string, identiFile string)
 
 func reduceSnapshot(snap *Snapshot, base string) error {
 	baseItems, err := ParseSnapshot(base)
-	if err != nil || len(baseItems) == 0 {
+	if err != nil || baseItems.Len() == 0 {
 		return fmt.Errorf("Can't load snapshot of %s. Application snapshot should be take on top of it. E:%s", base, err)
 	}
 
 	var removed int
-	for _, f := range baseItems {
+	for _, f := range baseItems.Inodes {
 		if snap.Remove(f.Name) {
 			removed++
 		}
