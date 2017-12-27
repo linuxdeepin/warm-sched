@@ -4,6 +4,7 @@
 #include <linux/seq_file.h>
 #include <linux/fs_struct.h>
 #include <linux/mount.h>
+#include <linux/sched.h>
 
 static const char* PROC_NAME = "mincores";
 
