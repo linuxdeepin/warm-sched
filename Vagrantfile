@@ -13,7 +13,17 @@ Vagrant.configure("2") do |config|
 
   config.vm.box_check_update = true
 
+  config.vm.provider "virtualbox" do |v|
+    v.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+    v.customize ["modifyvm", :id, "--uartmode1", "server", "kernel.sock"]
+    #used by
+    #socat -dd ./kernel.sock STDIO
+
+  end
+
   config.vm.provision "shell", inline: <<-SHELL
+    sed -i 's:GRUB_CMDLINE_LINUX_DEFAULT=.*:GRUB_CMDLINE_LINUX_DEFAULT="quiet console=ttyS0,115200n8":g' /etc/default/grub
+    update-grub
     bash -c 'echo "deb http://ftp.cn.debian.org/debian stretch main" > /etc/apt/sources.list'
     apt-get update
     apt-get install -y debhelper golang-go golang-golang-x-sys-dev dpkg-dev linux-headers-amd64
