@@ -12,10 +12,6 @@ type Manager struct {
 }
 
 func NewManager(mps []string, cacheDir string) (*Manager, error) {
-	err := TryMkdir(cacheDir)
-	if err != nil {
-		return nil, err
-	}
 	return &Manager{
 		cacheDir:   cacheDir,
 		scanPoints: mps,
@@ -29,6 +25,10 @@ func (m *Manager) identifyFileToPath(i string) string {
 
 func (m *Manager) takeSnapshot(identifyFile string, t SnapshotType) error {
 	snap, err := takeSnapshot(identifyFile, m.scanPoints)
+	if err != nil {
+		return err
+	}
+	err = TryMkdir(m.cacheDir)
 	if err != nil {
 		return err
 	}
