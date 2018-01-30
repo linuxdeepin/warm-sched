@@ -1,0 +1,138 @@
+readahead是完全可以大幅度提高系统效率的，不论是磁盘控制器还是
+kernel都使用了此技巧．page cahce甚至swap cache都做了readahead处理,
+并且提供了readahead(2), fadvise(2), madvise(2)等syscall让用户态辅助进行．
+
+毕竟kernel能感知的上层逻辑有限，基本只能以page为单位，粗暴的直接
+连续的读取一定数量的后续page.
+
+虽然进程具有一定的局部性，但跨越文件单位的readahead是很难由内核自动
+实现的．
+
+基于page的readahead多年来基本已经到达瓶颈，无法再进一步提高效率了．
+而用户态辅助这条路因为有其局限性，往往不被重视，因此还有很大提升空间．
+
+
+readahead的基本原理是很简单的, 有以下基本事实:
+1. 磁盘大部分时间处于空闲状态
+2. 磁盘读取会被kernel进行cache，且绝大部分进程的磁盘IO是读取．
+3. 用户日常使用到的磁盘内容都集中在一部分固定区域．(一般都小于RAM大小)
+
+一般来说高速设备访问低速backing store设备时，都会异步读取一定额外数量的内容放入cache中．
+若这些额外内容接下来被实际使用则效率能提升多个数量级．
+
+* 用户态事件源
+** systemd unit
+启动时间点和结束时间点都能较容易获得．且事件源发生的先后顺序有一定规律.
+
+** normal process
+进程启动点和结束点也能较容易获得．但事件源发生的先后没有太多规律
+
+** UI App
+启动点容易获取
+结束点不容易获取
+先后没有规律.
+
+但是否启动有一定规律． (用户经常使用的UI App是有规律的)
+
+** critical stage
+- system booting
+- display manager starting //等待用户输入密码
+- DE starting //发生大量初始化操作
+
+
+* 加载时误差累积
+若某次做snapshot的时候抓取到了错误的数据，那么很可能造成错误数据之后一直被加载．
+这样即使错误数据只有1%, 多次累积后就会造成错误数据比例过大．
+
+错误数据类型
+1. 日志文件.
+2. 非必须文件，比如IDE打开的某个工程项目．或gdb打开的debug文件. 
+3. 临时文件，比如每次启动时创建在随机目录下的内容.
+
+解决方式
+1. 名单匹配过滤．　如过滤/tmp, /run, /var/long等目录
+   此方式可用发展为更高级的UserAPI
+2. 验证性丢弃． 若加载后未被使用，则取消之前的记录．
+   (NOTE:目前无法实现, 除非kernel提供文件是否被访问的机制)
+3. 试探性丢弃．按一定规律放弃部分数据的加载．此方式是方案2无法实现的折中方案．
+
+* 探测时误差
+目前虽然使用mincores可以快速获得inode的实际情况(大概120ms), 但针对的是global状态．
+整个项目是基于event source来构架的，若event A与event B在时间上发生重叠则
+收集到的数据很可能出现重叠．
+
+潜在的解决方式
+1. 接管event source的启动过程，利用cgroup之类的技术准确获取访问过的文件．
+
+* 加载控制
+基本原则
+1. 分段加载
+2. 考虑当前剩余内存大小．(不包含cache的)
+
+* EXAMPLE
+
+** STORE
+STORE [init] display-manager /usr/bin/lightdm-deepin-greeter
+   $(contents of /proc/mincores)
+   # lightdm.service结束时
+
+STORE [display-manager] dde /usr/bin/startdde
+   $(contents of /proc/mincores)
+
+STORE [dde] launcher /usr/bin/dde-launcher
+   $(contents of /proc/mincores)
+
+STORE [idle] google-chrome /usr/share/applications/google-chrome.desktop
+   $(contents of /proc/mincores)
+
+STORE [dde] dde-dock /usr/bin/dde-dock 
+   $(contents of /proc/mincores)
+
+STORE [dde-dock] google-chrome-on-dock ~/.config/dock/apps/google-chrome.desktop 
+   $(contents of /proc/mincores)
+   # dde-dock启动chrome后
+
+STORE [dsc] fonts /usr/share/dsc/plugins/fonts.so 
+   $(contents of /var/lib/warm-up/dsc-plugin.list)
+
+STORE [idle] gedit /usr/share/applications/gedit.desktop
+   $(contents of /proc/mincores)
+
+** when take screenshot? 
+1. by /usr/share/warm-sched/{dynamic, static}
+   根据LOAD, STARTING, ENDED等事件配合配置文件动态生成STORE指令
+2. 外部代码直接传递STORE指令
+                                                                                                          
+** LOAD
+目的
+1. 隔离正常使用和调试环境. 正常使用时触发LOAD init all即可.
+2. 主动加载．
+
+ACTION NAME flags
+----------------
+LOAD init all # 默认初始化
+LOAD idle all # startdde检测到磁盘空闲后触发
+LOAD google-chrome self
+
+** DISABLE
+调试模式，或按需禁用．如已经激活google-chrome-on-dock则禁用google-chrome
+
+** STARTING
+目的
+1. 记录使用次数
+2. 配合STORE指令，支持when load方式(load on starting or load on previous)
+
+START display-manager
+START google-chrome
+
+** ENDED
+目的
+1. 若preload未完成，则提前结束避免无效加载
+2. 标记为超时，内部优化
+
+END display-manager
+END google-chrome
+
+
+
+
