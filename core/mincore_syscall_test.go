@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -11,7 +11,48 @@ import (
 	"unsafe"
 )
 
-func ProduceBySyscall(ch chan<- Inode, dirs []string) {
+func toRange(vec []bool) (PageRange, []bool) {
+	var s int
+	var offset = -1
+	var found = false
+	for i, v := range vec {
+		if !found && v {
+			offset = i
+		}
+		if v {
+			found = true
+		}
+		if !v && found {
+			break
+		}
+		s++
+	}
+	return PageRange{offset, s - offset}, vec[s:]
+}
+
+func ToRanges(vec []bool) []PageRange {
+	var ret []PageRange
+	var i PageRange
+	var pos = -1
+	for {
+		i, vec = toRange(vec)
+		if i.Offset == -1 {
+			break
+		}
+		if pos != -1 {
+			i.Offset += pos
+		}
+		pos = i.Offset + i.Count
+
+		ret = append(ret, i)
+		if len(vec) == 0 {
+			break
+		}
+	}
+	return ret
+}
+
+func ProduceBySyscall(ch chan<- FileInfo, dirs []string) {
 	defer close(ch)
 	for _, f := range dirs {
 		info, err := os.Lstat(f)
@@ -22,7 +63,7 @@ func ProduceBySyscall(ch chan<- Inode, dirs []string) {
 		if info.IsDir() {
 			err = showDirCacheInfos(f, ch)
 		} else {
-			err = showInode(f, ch)
+			err = showFileInfo(f, ch)
 		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "E:", err)
@@ -30,10 +71,7 @@ func ProduceBySyscall(ch chan<- Inode, dirs []string) {
 	}
 }
 
-func showDirCacheInfos(root string, ch chan<- Inode) error {
-	if BlackDirectory.ShouldSkip(root) {
-		return nil
-	}
+func showDirCacheInfos(root string, ch chan<- FileInfo) error {
 	f, err := os.Open(root)
 	if err != nil {
 		return err
@@ -48,13 +86,13 @@ func showDirCacheInfos(root string, ch chan<- Inode) error {
 		if info.IsDir() {
 			showDirCacheInfos(name, ch)
 		} else {
-			showInode(name, ch)
+			showFileInfo(name, ch)
 		}
 	}
 	return nil
 }
 
-func showInode(fname string, ch chan<- Inode) error {
+func showFileInfo(fname string, ch chan<- FileInfo) error {
 	info, err := fileMincore(fname)
 	if err != nil {
 		return err
@@ -63,34 +101,34 @@ func showInode(fname string, ch chan<- Inode) error {
 	return nil
 }
 
-func fileMincore(fname string) (Inode, error) {
+func fileMincore(fname string) (FileInfo, error) {
 	fname, err := filepath.Abs(fname)
 	if err != nil {
-		return Inode{}, err
+		return FileInfo{}, err
 	}
 
 	info, err := os.Lstat(fname)
 	if err != nil {
-		return Inode{}, err
+		return FileInfo{}, err
 	}
 	if !info.Mode().IsRegular() {
-		return Inode{}, err
+		return FileInfo{}, err
 	}
 
 	size := info.Size()
 
 	f, err := os.Open(fname)
 	if err != nil {
-		return Inode{}, err
+		return FileInfo{}, err
 	}
 	defer f.Close()
 
 	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
-		return Inode{}, fmt.Errorf("could not mmap %s: %v", fname, err)
+		return FileInfo{}, fmt.Errorf("could not mmap %s: %v", fname, err)
 	}
 
-	vecsz := (size + PageSize64 - 1) / PageSize64
+	vecsz := (size + pageSize64 - 1) / pageSize64
 	vec := make([]byte, vecsz)
 
 	// get all of the arguments to the mincore syscall converted to uintptr
@@ -100,7 +138,7 @@ func fileMincore(fname string) (Inode, error) {
 
 	ret, _, err := unix.Syscall(unix.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
-		return Inode{}, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
+		return FileInfo{}, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
 	}
 	defer unix.Munmap(mmap)
 
@@ -122,7 +160,7 @@ func fileMincore(fname string) (Inode, error) {
 
 	sinfo := info.Sys().(*syscall.Stat_t)
 
-	return Inode{
+	return FileInfo{
 		Name:    fname,
 		Size:    uint64(sinfo.Size),
 		Mapping: ToRanges(mc),
@@ -155,7 +193,7 @@ func GetSectorNumber(fd uintptr) uint64 {
 	return uint64(b)
 }
 
-func VerifyBySyscall(info Inode) error {
+func VerifyBySyscall(info FileInfo) error {
 	if err := syscall.Access(info.Name, unix.R_OK); err != nil {
 		return nil
 	}
@@ -166,7 +204,7 @@ func VerifyBySyscall(info Inode) error {
 	r1, r2 := info.Mapping, info2.Mapping
 	if !reflect.DeepEqual(r1, r2) {
 		return fmt.Errorf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
-			r1, int(info.Size)/PageSize, r2, int(info2.Size)/PageSize)
+			r1, int(info.Size)/pageSize, r2, int(info2.Size)/pageSize)
 	}
 	return nil
 }

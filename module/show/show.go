@@ -1,24 +1,13 @@
-package main
+package show
 
-import (
-	"fmt"
-	"strings"
-)
+import "../../core"
+import "fmt"
 
-func DumpCurrentPageCache(dirs []string) error {
-	ch := make(chan Inode)
-	err := Produce(ch, dirs)
-	if err != nil {
-		return err
-	}
-	return consumePrint(ch, dirs)
-}
-
-func consumePrint(ch <-chan Inode, dirs []string) error {
+func DumpPageCache() error {
 	var totalRAMSize, totalFileSize, totalUsedFileSize int
 	var totalFile, usedFile int
 
-	for info := range ch {
+	show := func(info core.FileInfo) error {
 		totalFile++
 		totalFileSize += int(info.Size)
 		if len(info.Mapping) > 0 {
@@ -27,14 +16,17 @@ func consumePrint(ch <-chan Inode, dirs []string) error {
 			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}
+		return nil
 	}
+
+	core.TakeByMincores([]string{"/"}, show)
 
 	if totalUsedFileSize > 0 {
 		fmt.Printf("%s\t%d%%\t%s",
-			humanSize(totalRAMSize),
+			core.HumanSize(totalRAMSize),
 			totalRAMSize*100/totalUsedFileSize,
 			fmt.Sprintf("[FOR %q FILES USED/TOTAL: %d/%d]\n",
-				strings.Join(dirs, ","),
+				"/",
 				usedFile, totalFile,
 			),
 		)

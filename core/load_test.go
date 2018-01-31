@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"golang.org/x/sys/unix"
@@ -36,7 +36,7 @@ func TestLoad(t *testing.T) {
 	a := createFile("A", 50)
 
 	// 1. drop file A
-	err := FAdvise(a, nil, AdviseDrop)
+	err := _FAdvise(a, nil, _AdviseDrop)
 	if err != nil {
 		t.Fatalf("Can't drop %s' page cache", a)
 	}
@@ -54,7 +54,7 @@ func TestLoad(t *testing.T) {
 	// 3. load random pages
 	rs := randomePageRange(50)
 
-	err = FAdvise(a, rs, AdviseLoad)
+	err = _FAdvise(a, rs, _AdviseLoad)
 	if err != nil {
 		t.Fatal("Failed excute AdviseLoad", err)
 	}
@@ -87,10 +87,10 @@ func TestMaxRange(t *testing.T) {
 		[2]int{5 * ps, 1 * ps},
 	}
 
-	if r := PageRangeToSizeRange(1, 1, d...); !reflect.DeepEqual(r, r1) {
+	if r := pageRangeToSizeRange(1, 1, d...); !reflect.DeepEqual(r, r1) {
 		t.Fatalf("Expect %v, but got %v", r1, r)
 	}
-	if r := PageRangeToSizeRange(ps, 2, d...); !reflect.DeepEqual(r, r2) {
+	if r := pageRangeToSizeRange(ps, 2, d...); !reflect.DeepEqual(r, r2) {
 		t.Fatalf("Expect %v, but got %v", r2, r)
 	}
 }
@@ -119,17 +119,18 @@ func TestBitsToPageRange(t *testing.T) {
 }
 
 func TestVerifyMincores(t *testing.T) {
-	ch := make(chan Inode)
-	go ProduceByKernel(ch, []string{"/"})
-	for i := range ch {
-		if err := VerifyBySyscall(i); err != nil {
-			t.Fatal(err)
+	TakeByMincores([]string{"/"}, func(info FileInfo) error {
+		err := VerifyBySyscall(info)
+		if err != nil {
+			t.Error(err)
 		}
-	}
+		return nil
+	})
 }
+
 func TestEnsureAdviseConst(t *testing.T) {
-	if (unix.FADV_DONTNEED != AdviseDrop) ||
-		(unix.FADV_WILLNEED != AdviseLoad) {
+	if (unix.FADV_DONTNEED != _AdviseDrop) ||
+		(unix.FADV_WILLNEED != _AdviseLoad) {
 		t.Fatal()
 	}
 }

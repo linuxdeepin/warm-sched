@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"bufio"
@@ -10,46 +10,29 @@ import (
 )
 
 // Read PageCache from /proc/mincores
-const MincoresPath = "/proc/mincores"
+const mincoresPath = "/proc/mincores"
 
-func SupportProduceByKernel() error {
-	if _, err := os.Stat(MincoresPath); err != nil {
-		return fmt.Errorf("Please insmod mincores")
-	}
-	return nil
-}
-
-func ProduceByKernel(ch chan<- Inode, mps []string) {
+func generateFileInfoByKernel(ch chan<- FileInfo, mps []string) {
 	defer close(ch)
 	for _, t := range mps {
 		collectMincores(ch, t)
 	}
 }
 
-func CalcRealTargets(dirs []string, mps []string) []string {
-	targets := make(map[string]struct{})
-	for _, dir := range dirs {
-		for _, mp := range mps {
-			if strings.HasPrefix(dir, mp) {
-				targets[mp] = struct{}{}
-				break
-			}
-		}
+func supportProduceByKernel() error {
+	if _, err := os.Stat(mincoresPath); err != nil {
+		return fmt.Errorf("Please insmod mincores")
 	}
-	var ret []string
-	for t := range targets {
-		ret = append(ret, t)
-	}
-	return ret
+	return nil
 }
 
-func collectMincores(ch chan<- Inode, mntPoint string) {
+func collectMincores(ch chan<- FileInfo, mntPoint string) {
 	if mntPoint != "" && mntPoint != "." {
 		wd, _ := os.Getwd()
 		defer os.Chdir(wd)
 		os.Chdir(mntPoint)
 	}
-	f, err := os.Open(MincoresPath)
+	f, err := os.Open(mincoresPath)
 	if err != nil {
 		return
 	}
@@ -74,11 +57,8 @@ func collectMincores(ch chan<- Inode, mntPoint string) {
 		}
 
 		fname := path.Join(mntPoint, strings.TrimSpace(fields[3]))
-		if BlackDirectory.ShouldSkip(fname) {
-			continue
-		}
 
-		info, err := buildInodeFromKernel(
+		info, err := buildFileInfoFromKernel(
 			fname,
 			bn,
 			s,
@@ -92,15 +72,15 @@ func collectMincores(ch chan<- Inode, mntPoint string) {
 	}
 }
 
-func buildInodeFromKernel(fname string, bn int64, filePages int64, mapping string) (Inode, error) {
+func buildFileInfoFromKernel(fname string, bn int64, filePages int64, mapping string) (FileInfo, error) {
 	bm, err := parseMapRange(mapping)
 	if err != nil {
-		return Inode{}, err
+		return FileInfo{}, err
 	}
-	return Inode{
+	return FileInfo{
 		Name:    fname,
 		Mapping: bm,
-		Size:    uint64(filePages) * uint64(PageSize),
+		Size:    uint64(filePages) * uint64(pageSize),
 		dev:     0,
 		sector:  uint64(bn),
 	}, nil
