@@ -5,25 +5,14 @@ import (
 	"sort"
 )
 
-type snapshotItemStatus int
-
-const (
-	snapshotItemInvalid snapshotItemStatus = iota
-	snapshotItemAlways
-	snapshotItemRemoved
-)
-
 type Snapshot struct {
 	IdentifyFile string
 	Infos        FileInfos
-
-	status map[string]snapshotItemStatus
 }
 
 func createSnapshot(idFile string) *Snapshot {
 	snap := &Snapshot{
 		IdentifyFile: idFile,
-		status:       make(map[string]snapshotItemStatus),
 	}
 	return snap
 }
@@ -71,7 +60,7 @@ func (infos FileInfos) less(i, j int) bool {
 func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 	for _, r := range snap.Infos {
 		var err error
-		err = Apply(r)
+		err = ApplyFileInfo(r)
 		if err != nil && !ignoreError {
 			return err
 		}

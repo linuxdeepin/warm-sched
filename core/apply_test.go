@@ -119,7 +119,7 @@ func TestBitsToPageRange(t *testing.T) {
 }
 
 func TestVerifyMincores(t *testing.T) {
-	TakeByMincores([]string{"/"}, func(info FileInfo) error {
+	CaptureByMincores([]string{"/"}, func(info FileInfo) error {
 		err := VerifyBySyscall(info)
 		if err != nil {
 			t.Error(err)

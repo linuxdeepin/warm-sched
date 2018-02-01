@@ -10,7 +10,7 @@ const (
 	_AdviseDrop = syscall.MADV_DONTNEED
 )
 
-func Apply(info FileInfo) error {
+func ApplyFileInfo(info FileInfo) error {
 	err := _FAdvise(info.Name, info.Mapping, _AdviseLoad)
 	if err != nil {
 		return fmt.Errorf("Apply failed for %s : %v", info.Name, err)
