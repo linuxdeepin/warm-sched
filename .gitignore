@@ -8,3 +8,6 @@
 /kernel/*.ko
 kernel/.tmp_versions/
 bin
+/daemon/daemon
+/warm-daemon
+/warmctl

@@ -1,0 +1,23 @@
+{
+    "Id" : "BASIC",
+    "TryFile": "/bin/systemd",
+    "Apply": {
+        "After": ["systemd:local-fs.target"]
+    },
+    "Capture": {
+        "After": ["systemd:display-manager.service"],
+
+        "ExpireLimit": 0,
+
+        "UseMincore": true,
+
+        "Method": [
+            {
+                "Type": "Mincores",
+                "MINCORES": {
+                    "MountPoints": ["/"]
+                }
+            }
+        ]
+    }
+}

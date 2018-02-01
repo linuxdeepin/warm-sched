@@ -1,0 +1,34 @@
+{
+    "Id" : "google-chrome",
+    "TryFile": "/opt/google/chrome/chrome",
+    "Apply": {
+        "InitUsage": 10,
+        "After": ["snapshot:DDE"],
+        "When": ["idle", "dde:dde-launcher"]
+    },
+    "Capture": {
+        "ExpireLimit": 0,
+        "WhenAfter": ["uiapp:google-chrome"],
+        "Method": [
+            {
+                "Type": "UIApp",
+                "UseMincore": true,
+                "UIApp": "google-chrome.desktop"
+            },
+            {
+                "Type": "dpkg",
+                "UseMincore": true,
+                "DPKG": "google-chrome-stable"
+            },
+            {
+                "Type": "static",
+                "UseMincore": true,
+                "Static": "~/.config/google-chrome",
+                "Blacklist": [
+                    "$root/Crash Reports",
+                    "$root/Webstore Downloads"
+                ]
+            }
+        ]
+    }
+}

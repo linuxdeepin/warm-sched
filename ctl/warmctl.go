@@ -1,8 +1,6 @@
 package main
 
 import (
-	"./module/show"
-	"./module/store"
 	"flag"
 	"fmt"
 	"os"
@@ -31,24 +29,33 @@ func InitFlags() AppFlags {
 	return af
 }
 
-func doActions(af AppFlags, args []string) error {
+func doActions(c RPCClient, af AppFlags, args []string) error {
 	var err error
 	switch {
 	case af.store:
-		err = store.CaptureAndStore([]string{"/"}, "abc", "abc.snap")
 	case af.load:
-		err = store.LoadAndApply("abc.snap", true)
+		//		err = daemon.LoadAndApply("abc.snap", true)
 	case af.show:
-		err = show.DumpPageCache()
+
 	default:
-		err = show.DumpPageCache()
+		snap, err := c.Capture()
+		if err != nil {
+			return err
+		}
+		DumpSnapshot(snap)
 	}
 	return err
 }
 
 func main() {
+	c, err := NewRPCClient()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Cant Init RPC:", err)
+		return
+	}
+
 	af := InitFlags()
-	err := doActions(af, flag.Args())
+	err = doActions(c, af, flag.Args())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)
 	}

@@ -1,5 +1,6 @@
 all:
-	go build -o bin/warm-sched
+	cd ctl && go build -o ../warmctl
+	cd daemon && go build -o ../warm-daemon
 
 clean:
-	rm -rf bin
+	rm -rf warmctl warm-daemon

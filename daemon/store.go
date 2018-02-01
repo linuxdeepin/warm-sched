@@ -1,7 +1,7 @@
-package store
+package main
 
 import (
-	"../../core"
+	"../core"
 	"encoding/gob"
 	"fmt"
 	"os"

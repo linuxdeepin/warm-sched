@@ -1,13 +1,13 @@
-package show
+package main
 
-import "../../core"
+import "../core"
 import "fmt"
 
-func DumpPageCache() error {
+func DumpSnapshot(snap *core.Snapshot) error {
 	var totalRAMSize, totalFileSize, totalUsedFileSize int
 	var totalFile, usedFile int
 
-	show := func(info core.FileInfo) error {
+	for _, info := range snap.Infos {
 		totalFile++
 		totalFileSize += int(info.Size)
 		if len(info.Mapping) > 0 {
@@ -16,10 +16,7 @@ func DumpPageCache() error {
 			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}
-		return nil
 	}
-
-	core.CaptureByMincores([]string{"/"}, show)
 
 	if totalUsedFileSize > 0 {
 		fmt.Printf("%s\t%d%%\t%s",

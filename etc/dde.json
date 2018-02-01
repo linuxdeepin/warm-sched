@@ -1,0 +1,20 @@
+{
+    "Id" : "DDE",
+    "TryFile": "/usr/bin/startdde",
+    "Apply": {
+        "After": ["snapshot:BASIC"]
+    },
+    "Capture": {
+        "ExpireLimit": 0,
+        "UseMincore": true,
+        "WhenAfter": ["dde:ready"],
+        "Method": [
+            {
+                "Type": "Mincores",
+                "MINCORES": {
+                    "MountPoints": ["/"]
+                }
+            }
+        ]
+    }
+}
