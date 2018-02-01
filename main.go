@@ -35,9 +35,9 @@ func doActions(af AppFlags, args []string) error {
 	var err error
 	switch {
 	case af.store:
-		err = store.StoreSnapshot([]string{"/"}, "abc", "abc.snap")
+		err = store.CaptureAndStore([]string{"/"}, "abc", "abc.snap")
 	case af.load:
-		err = store.LoadSnapshot("abc.snap", true)
+		err = store.LoadAndApply("abc.snap", true)
 	case af.show:
 		err = show.DumpPageCache()
 	default:

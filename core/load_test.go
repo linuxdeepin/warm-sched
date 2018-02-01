@@ -20,7 +20,7 @@ func TestRangeStartWithTrues(t *testing.T) {
 }
 
 func createFile(name string, pageCount int) string {
-	return "../dddd"
+	return "/usr/bin/git"
 }
 
 func randomePageRange(maxCount int) []PageRange {

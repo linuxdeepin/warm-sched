@@ -19,7 +19,7 @@ func DumpPageCache() error {
 		return nil
 	}
 
-	core.TakeByMincores([]string{"/"}, show)
+	core.CaptureByMincores([]string{"/"}, show)
 
 	if totalUsedFileSize > 0 {
 		fmt.Printf("%s\t%d%%\t%s",

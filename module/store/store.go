@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-func StoreSnapshot(scanMountPoints []string, identifyFile string, fname string) error {
-	snap, err := core.TakeSnapshot(identifyFile, scanMountPoints)
+func CaptureAndStore(scanMountPoints []string, identifyFile string, fname string) error {
+	snap, err := core.CaptureSnapshot(identifyFile, scanMountPoints)
 	if err != nil {
 		return err
 	}
@@ -16,7 +16,7 @@ func StoreSnapshot(scanMountPoints []string, identifyFile string, fname string) 
 	return storeTo(snap, fname)
 }
 
-func LoadSnapshot(fname string, ignoreError bool) error {
+func LoadAndApply(fname string, ignoreError bool) error {
 	snap, err := loadFrom(fname)
 	if err != nil {
 		return err

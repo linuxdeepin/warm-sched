@@ -29,7 +29,7 @@ func createSnapshot(idFile string) *Snapshot {
 }
 
 func (s *Snapshot) Sort() {
-	sort.Sort(s.Infos)
+	sort.Slice(s.Infos, s.Infos.less)
 }
 
 func (s *Snapshot) Add(i FileInfo) {
@@ -43,7 +43,7 @@ func (s *Snapshot) String() string {
 	}
 	return fmt.Sprintf("%q contains %d files, will occupy %s RAM size, about %d%% of total files",
 		s.IdentifyFile,
-		s.Infos.Len(),
+		len(s.Infos),
 		HumanSize(ramSize),
 		ramSize*100/fileSize,
 	)
@@ -60,18 +60,12 @@ func (s *Snapshot) sizes() (int, int) {
 
 type FileInfos []FileInfo
 
-func (infos FileInfos) Len() int {
-	return len(infos)
-}
-func (infos FileInfos) Less(i, j int) bool {
+func (infos FileInfos) less(i, j int) bool {
 	a, b := infos[i], infos[j]
 	if a.dev == b.dev {
 		return a.sector < b.sector
 	}
 	return a.dev < b.dev
-}
-func (infos FileInfos) Swap(i, j int) {
-	infos[i], infos[j] = infos[j], infos[i]
 }
 
 func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
@@ -85,9 +79,9 @@ func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 	return nil
 }
 
-func TakeSnapshot(identifyFile string, mps []string) (*Snapshot, error) {
+func CaptureSnapshot(identifyFile string, mps []string) (*Snapshot, error) {
 	snap := createSnapshot(identifyFile)
-	err := TakeByMincores(mps, func(info FileInfo) error {
+	err := CaptureByMincores(mps, func(info FileInfo) error {
 		snap.Add(info)
 		return nil
 	})

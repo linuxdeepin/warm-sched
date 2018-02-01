@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type FileInfoTakeHandleFunc func(FileInfo) error
+type FileInfoHandleFunc func(FileInfo) error
 
 type PageRange struct {
 	Offset int

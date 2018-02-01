@@ -1,6 +1,6 @@
 package core
 
-func TakeByMincores(mps []string, handle FileInfoTakeHandleFunc) error {
+func CaptureByMincores(mps []string, handle FileInfoHandleFunc) error {
 	if err := supportProduceByKernel(); err != nil {
 		return err
 	}
@@ -16,6 +16,6 @@ func TakeByMincores(mps []string, handle FileInfoTakeHandleFunc) error {
 	return nil
 }
 
-func TakeByPIDs(pids []int, acc interface{}, handle FileInfoTakeHandleFunc) error {
+func CaptureByPIDs(pids []int, acc interface{}, handle FileInfoHandleFunc) error {
 	panic("Not Implement")
 }

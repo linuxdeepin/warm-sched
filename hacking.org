@@ -69,6 +69,13 @@ readahead的基本原理是很简单的, 有以下基本事实:
 1. 分段加载
 2. 考虑当前剩余内存大小．(不包含cache的)
 
+** 截取阶段
+1. 全局黑名单
+2. snapshot capture config
+
+** 加载阶段
+1. snapshot apply config
+
 * EXAMPLE
 
 ** STORE
