@@ -1,8 +1,10 @@
 package core
 
 import (
+	"fmt"
 	"golang.org/x/sys/unix"
 	"reflect"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -14,7 +16,7 @@ func TestRangeStartWithTrues(t *testing.T) {
 		PageRange{5, 1},
 	}
 
-	if r := ToRanges(vec); !reflect.DeepEqual(r, ret) {
+	if r := toRanges(vec); !reflect.DeepEqual(r, ret) {
 		t.Fatalf("Expect %v, but got %v", ret, r)
 	}
 }
@@ -43,7 +45,7 @@ func TestLoad(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// 2. check result A
-	i, err := fileMincore(a)
+	i, err := FileMincore(a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +62,7 @@ func TestLoad(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	i, err = fileMincore(a)
+	i, err = FileMincore(a)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,14 +108,17 @@ func TestBitsToPageRange(t *testing.T) {
 	if !reflect.DeepEqual(r1, r) {
 		t.Fatalf("%+v is not equal %+v\n", r1, r)
 	}
-	if rs := ToRanges(vec); !reflect.DeepEqual(rs, rr) {
+	if rs := toRanges(vec); !reflect.DeepEqual(rs, rr) {
 		t.Fatalf("\nvec:%v\n%+v\n is not equal\n%+v\n", vec, rs, rr)
 	}
 
-	if r := ToRanges(nil); len(r) != 0 {
+	if r := toRanges(nil); len(r) != 0 {
 		t.Fatal("None Empty Set", r)
 	}
-	if r := ToRanges([]bool{}); len(r) != 0 {
+	if r := toRanges([]bool{}); len(r) != 0 {
+		t.Fatal("None Empty Set", r)
+	}
+	if r := toRanges([]bool{false, false, false}); len(r) != 0 {
 		t.Fatal("None Empty Set", r)
 	}
 }
@@ -126,6 +131,22 @@ func TestVerifyMincores(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+func VerifyBySyscall(info FileInfo) error {
+	if err := syscall.Access(info.Name, unix.R_OK); err != nil {
+		return nil
+	}
+	info2, err := FileMincore(info.Name)
+	if err != nil {
+		return err
+	}
+	r1, r2 := info.Mapping, info2.Mapping
+	if !reflect.DeepEqual(r1, r2) {
+		return fmt.Errorf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
+			r1, int(info.Size)/pageSize, r2, int(info2.Size)/pageSize)
+	}
+	return nil
 }
 
 func TestEnsureAdviseConst(t *testing.T) {
