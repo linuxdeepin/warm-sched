@@ -12,8 +12,30 @@ import (
 // Read PageCache from /proc/mincores
 const mincoresPath = "/proc/mincores"
 
-func generateFileInfoByKernel(ch chan<- FileInfo, mps []string) {
+var SystemMountPoints = ListMountPoints()
+
+func calcRealTargets(dirs []string, mps []string) []string {
+	targets := make(map[string]struct{})
+	for _, dir := range dirs {
+		for _, mp := range mps {
+			if strings.HasPrefix(dir, mp) {
+				targets[mp] = struct{}{}
+				break
+			}
+		}
+	}
+	var ret []string
+	for t := range targets {
+		ret = append(ret, t)
+	}
+	return ret
+}
+
+func generateFileInfoByKernel(ch chan<- FileInfo, dirs []string) {
 	defer close(ch)
+
+	mps := calcRealTargets(_ReduceFilePath(dirs...), SystemMountPoints)
+
 	for _, t := range mps {
 		collectMincores(ch, t)
 	}

@@ -1,8 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
+	"sort"
+	"strings"
 )
 
 var pageSize = os.Getpagesize()
@@ -52,6 +56,54 @@ func pageRangeToSizeRange(pageSize int, maxPageCount int, rs ...PageRange) [][2]
 	for _, r := range rs {
 		for _, rr := range splitPageRange(r, maxPageCount) {
 			ret = append(ret, [2]int{rr.Offset * pageSize, rr.Count * pageSize})
+		}
+	}
+	return ret
+}
+
+func ListMountPoints() []string {
+	cmd := exec.Command("/bin/df",
+		"-t", "ext2",
+		"-t", "ext3",
+		"-t", "ext4",
+		"-t", "fat",
+		"-t", "ntfs",
+		"--output=target")
+	cmd.Env = []string{"LC_ALL=C"}
+	buf := bytes.NewBuffer(nil)
+	cmd.Stdout = buf
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return nil
+	}
+
+	line, err := buf.ReadString('\n')
+	if line != "Mounted on\n" || err != nil {
+		return nil
+	}
+	var ret []string
+	for {
+		line, err := buf.ReadString('\n')
+		if err != nil {
+			break
+		}
+		ret = append(ret, strings.TrimSpace(line))
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(ret)))
+	return ret
+}
+
+func _ReduceFilePath(fs ...string) []string {
+	cache := make(map[string]bool)
+	for _, f := range fs {
+		ff := os.ExpandEnv(f)
+		cache[ff] = true
+	}
+	var ret []string
+	for k, v := range cache {
+		if v {
+			ret = append(ret, k)
 		}
 	}
 	return ret

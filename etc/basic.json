@@ -14,7 +14,8 @@
 
         "Method": [
             {
-                "Type": "Mincores",
+                "Type": "mincores",
+                "Blacklist": ["/boot"],
                 "Mincores": ["/"]
             }
         ]

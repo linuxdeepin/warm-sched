@@ -11,8 +11,9 @@
         "WhenAfter": ["dde:ready"],
         "Method": [
             {
-                "Type": "Mincores",
-                "Mincores": ["/"]
+                "Type": "mincores",
+                "Mincores": ["/", "$HOME"],
+                "Blacklist": ["/var/lib/lastore", "$HOME/.config/pulse"]
             }
         ]
     }

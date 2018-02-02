@@ -82,8 +82,11 @@ func (m CaptureMethod) wrap(fn FileInfoHandleFunc) FileInfoHandleFunc {
 	if len(m.Blacklist) == 0 {
 		return fn
 	}
+
+	blacklist := _ReduceFilePath(m.Blacklist...)
+
 	inBlacklist := func(name string) bool {
-		for _, rule := range m.Blacklist {
+		for _, rule := range blacklist {
 			if strings.HasPrefix(name, rule) {
 				return true
 			}
