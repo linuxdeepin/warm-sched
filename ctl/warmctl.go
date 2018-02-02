@@ -36,13 +36,19 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 	case af.load:
 		//		err = daemon.LoadAndApply("abc.snap", true)
 	case af.show:
-
-	default:
 		snap, err := c.Capture()
 		if err != nil {
 			return err
 		}
 		DumpSnapshot(snap)
+	default:
+		cfgs, err := c.ListConfig()
+		if err != nil {
+			return err
+		}
+		for _, cfg := range cfgs {
+			fmt.Println(cfg.Id, cfg.Description, cfg.TryFile)
+		}
 	}
 	return err
 }

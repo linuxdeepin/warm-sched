@@ -11,3 +11,4 @@ bin
 /daemon/daemon
 /warm-daemon
 /warmctl
+/ctl/ctl

@@ -1,11 +1,12 @@
 {
     "Id" : "BASIC",
+    "Description": "basic system snapshot",
     "TryFile": "/bin/systemd",
     "Apply": {
-        "After": ["systemd:local-fs.target"]
+        "After": [ { "scope": "systemd", "id": "local-fs.target"} ]
     },
     "Capture": {
-        "After": ["systemd:display-manager.service"],
+        "After": [ { "scope": "systemd", "id":"display-manager.service"} ],
 
         "ExpireLimit": 0,
 
@@ -14,9 +15,7 @@
         "Method": [
             {
                 "Type": "Mincores",
-                "MINCORES": {
-                    "MountPoints": ["/"]
-                }
+                "Mincores": ["/"]
             }
         ]
     }

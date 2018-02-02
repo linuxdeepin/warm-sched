@@ -1,19 +1,50 @@
 package main
 
 import (
+	"../core"
 	"fmt"
 	"os"
 )
 
-var SOCKET = os.ExpandEnv("${XDG_RUNTIME_DIR}/warm-sched.socket")
+type Daemon struct {
+	cfgs []*core.SnapshotConfig
 
-type Message struct {
-	Name string
-	Body interface{}
+	events chan core.EventSource
+
+	storage *Storeage
+
+	history *History
+
+	addr string
+}
+
+func (d *Daemon) Run() error {
+	return RunRPCService(d, "unix", d.addr)
+}
+
+func NewDaemon(etc string, addr string) (*Daemon, error) {
+	cfgs, err := ScanConfigs(etc)
+	if err != nil {
+		return nil, err
+	}
+	return &Daemon{
+		addr: addr,
+		cfgs: cfgs,
+	}, nil
+}
+
+func RunDaemon() error {
+	var SOCKET = os.ExpandEnv("${XDG_RUNTIME_DIR}/warm-sched.socket")
+
+	d, err := NewDaemon("./etc", SOCKET)
+	if err != nil {
+		return err
+	}
+	return d.Run()
 }
 
 func main() {
-	err := NewRPCService("unix", SOCKET)
+	err := RunDaemon()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E:%v\n", err)
 		return

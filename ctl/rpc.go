@@ -19,6 +19,12 @@ func (c RPCClient) Capture() (*core.Snapshot, error) {
 	return &snap, err
 }
 
+func (c RPCClient) ListConfig() ([]*core.SnapshotConfig, error) {
+	var cfgs []*core.SnapshotConfig
+	err := c.core.Call(RPCName+".ListConfig", true, &cfgs)
+	return cfgs, err
+}
+
 func NewRPCClient() (RPCClient, error) {
 	var err error
 	client, err := rpc.Dial("unix", SOCKET)

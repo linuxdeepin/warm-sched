@@ -1,46 +1,38 @@
 package main
 
 import (
-	"../core"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 )
 
-func CaptureAndStore(scanMountPoints []string, identifyFile string, fname string) error {
-	snap, err := core.CaptureSnapshot(identifyFile, scanMountPoints)
+type Storeage struct {
+}
+
+func StoreTo(fname string, o interface{}) error {
+	w, err := os.Create(fname)
 	if err != nil {
 		return err
 	}
-	snap.Sort()
-	return storeTo(snap, fname)
+	return storeTo(w, o)
 }
 
-func LoadAndApply(fname string, ignoreError bool) error {
-	snap, err := loadFrom(fname)
-	if err != nil {
-		return err
-	}
-	return core.ApplySnapshot(snap, ignoreError)
-}
-
-func storeTo(s *core.Snapshot, fname string) error {
-	f, err := os.Create(fname)
-	if err != nil {
-		return err
-	}
-	return gob.NewEncoder(f).Encode(s)
-}
-
-func loadFrom(fname string) (*core.Snapshot, error) {
+func LoadFrom(fname string, o interface{}) error {
 	f, err := os.Open(fname)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var snap core.Snapshot
-	err = gob.NewDecoder(f).Decode(&snap)
+	err = loadFrom(f, o)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid snapshot version for %q", fname)
+		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
 	}
-	return &snap, nil
+	return nil
+}
+
+func storeTo(w io.Writer, o interface{}) error {
+	return json.NewEncoder(w).Encode(o)
+}
+func loadFrom(r io.Reader, o interface{}) error {
+	return json.NewDecoder(r).Decode(o)
 }

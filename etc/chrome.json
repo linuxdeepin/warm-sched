@@ -3,12 +3,12 @@
     "TryFile": "/opt/google/chrome/chrome",
     "Apply": {
         "InitUsage": 10,
-        "After": ["snapshot:DDE"],
-        "When": ["idle", "dde:dde-launcher"]
+        "After": [ { "scope": "snapshot", "id:": "DDE" } ],
+        "When": [ {"id":"idle"}, {"scope":"dde", "id":"dde-launcher"}]
     },
     "Capture": {
         "ExpireLimit": 0,
-        "WhenAfter": ["uiapp:google-chrome"],
+        "Aftter": ["uiapp:google-chrome"],
         "Method": [
             {
                 "Type": "UIApp",
@@ -16,14 +16,9 @@
                 "UIApp": "google-chrome.desktop"
             },
             {
-                "Type": "dpkg",
-                "UseMincore": true,
-                "DPKG": "google-chrome-stable"
-            },
-            {
                 "Type": "static",
                 "UseMincore": true,
-                "Static": "~/.config/google-chrome",
+                "Static": "$HOME/.config/google-chrome",
                 "Blacklist": [
                     "$root/Crash Reports",
                     "$root/Webstore Downloads"

@@ -7,16 +7,17 @@ import (
 )
 
 type RPCService struct {
+	daemon *Daemon
 }
 
 const RPCName = "daemon"
 
-func NewRPCService(netType string, addr string) error {
+func RunRPCService(d *Daemon, netType string, addr string) error {
 	l, err := net.Listen(netType, addr)
 	if err != nil {
 		return err
 	}
-	s := RPCService{}
+	s := RPCService{d}
 	err = rpc.RegisterName(RPCName, s)
 	if err != nil {
 		return err
@@ -25,21 +26,14 @@ func NewRPCService(netType string, addr string) error {
 	return nil
 }
 
-type Event struct {
-	Scope string
-	Id    string
+func (s RPCService) EmitEvent(in core.EventSource, out *bool) error {
+	s.daemon.events <- in
+	return nil
 }
 
-func (RPCService) EmitEvent(in Event, out *bool) error {
-	panic("Not implement")
-}
-
-func (RPCService) LoadCaptureConfig(in CaptureConfig, out *bool) error {
-	panic("Not implement")
-}
-
-func (RPCService) LoadApplyConfig(in ApplyConfig, out *bool) error {
-	panic("Not implement")
+func (s RPCService) ListConfig(_ bool, out *[]*core.SnapshotConfig) error {
+	*out = s.daemon.cfgs
+	return nil
 }
 
 func (RPCService) Capture(_ string, out *core.Snapshot) error {

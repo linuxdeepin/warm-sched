@@ -1,8 +1,9 @@
 {
     "Id" : "DDE",
+    "Description": "stuff about DDE",
     "TryFile": "/usr/bin/startdde",
     "Apply": {
-        "After": ["snapshot:BASIC"]
+        "After": [ {"scope":"snapshot", "id":"BASIC"} ]
     },
     "Capture": {
         "ExpireLimit": 0,
@@ -11,9 +12,7 @@
         "Method": [
             {
                 "Type": "Mincores",
-                "MINCORES": {
-                    "MountPoints": ["/"]
-                }
+                "Mincores": ["/"]
             }
         ]
     }
