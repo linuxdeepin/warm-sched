@@ -79,6 +79,8 @@ func CaptureSnapshot(cfg CaptureConfig) (*Snapshot, error) {
 			err = CaptureByMincores(m.Mincores, snap.Add)
 		case _MethodPIDs:
 			err = CaptureByPIDs(m.PIDs, snap.Add)
+		case _MethodFileList:
+			err = CaptureByFileList(m.Whitelist, true, snap.Add)
 		default:
 			return nil, fmt.Errorf("Capture method %q is not support", m.Type)
 		}
@@ -136,12 +138,20 @@ type CaptureConfig struct {
 const (
 	_MethodMincores = "mincores"
 	_MethodPIDs     = "pids"
+	_MethodFileList = "filelist"
 )
 
 func CaptureMethodPIDs(pids ...int) CaptureMethod {
 	return CaptureMethod{
 		Type: _MethodPIDs,
 		PIDs: pids,
+	}
+}
+
+func CaptureMethodFileList(list ...string) CaptureMethod {
+	return CaptureMethod{
+		Type:      _MethodFileList,
+		Whitelist: list,
 	}
 }
 

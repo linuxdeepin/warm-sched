@@ -32,3 +32,16 @@ func CaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 	}
 	return nil
 }
+
+func CaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc) error {
+	for _, fname := range list {
+		finfo, err := FileMincore(fname)
+		if err != nil {
+			continue
+		}
+		if err := handle(finfo); err != nil {
+			return err
+		}
+	}
+	return nil
+}
