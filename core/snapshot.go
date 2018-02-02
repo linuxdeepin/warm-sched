@@ -66,29 +66,15 @@ func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 }
 
 func CaptureSnapshot(cfg CaptureConfig) (*Snapshot, error) {
-	snap := createSnapshot()
-
 	if len(cfg.Method) == 0 {
 		return nil, fmt.Errorf("It Must specify at least one Capture methods.")
 	}
-
+	snap := createSnapshot()
 	for _, m := range cfg.Method {
-		var err error
-		switch m.Type {
-		case _MethodMincores:
-			err = CaptureByMincores(m.Mincores, snap.Add)
-		case _MethodPIDs:
-			err = CaptureByPIDs(m.PIDs, snap.Add)
-		case _MethodFileList:
-			err = CaptureByFileList(m.Whitelist, true, snap.Add)
-		default:
-			return nil, fmt.Errorf("Capture method %q is not support", m.Type)
-		}
-		if err != nil {
+		if err := DoCapture(m, snap.Add); err != nil {
 			return nil, err
 		}
 	}
-
 	return snap, nil
 }
 
@@ -132,56 +118,4 @@ type CaptureConfig struct {
 	After []EventSource
 
 	Method []CaptureMethod
-}
-
-// Valid type of CaputreMethod
-const (
-	_MethodMincores = "mincores"
-	_MethodPIDs     = "pids"
-	_MethodFileList = "filelist"
-)
-
-func CaptureMethodPIDs(pids ...int) CaptureMethod {
-	return CaptureMethod{
-		Type: _MethodPIDs,
-		PIDs: pids,
-	}
-}
-
-func CaptureMethodFileList(list ...string) CaptureMethod {
-	return CaptureMethod{
-		Type:      _MethodFileList,
-		Whitelist: list,
-	}
-}
-
-func CaptureMethodMincores(mountPoints ...string) CaptureMethod {
-	return CaptureMethod{
-		Type:     _MethodMincores,
-		Mincores: mountPoints,
-	}
-}
-
-type CaptureMethod struct {
-	Type string
-
-	// 最终文件一定只会出现在Whitelist目录列表下. 默认使用"/"
-	// 也可以传递具体的文件列表，
-	// 如使用$(dpkg -L google-chrome-stable), 然后配合Method="mincore"
-	Whitelist []string
-
-	//blacklist中出现的文件或文件夹会被忽略
-	Blacklist []string
-
-	// 1. "mincores:/" 使用mincores
-	Mincores []string
-
-	// 2. "pid:$pid" 分析对应$pid的mapping文件
-	PIDs []int
-
-	// 4. "static:["$filename",[[$PageRange]]]" 直接传递实际数据．
-	// Static []struct {
-	// 	FileName  string
-	// 	PageRange []core.PageRange
-	// }
 }

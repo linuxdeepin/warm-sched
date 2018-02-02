@@ -52,9 +52,13 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 		// }
 		test_cfg := core.CaptureConfig{
 			Method: []core.CaptureMethod{
-				//core.CaptureMethodMincores("/"),
-				core.CaptureMethodPIDs(os.Getpid()),
-				// core.CaptureMethodPIDs(pids...),
+				//core.NewCaptureMethodMincores("/"),
+				core.NewCaptureMethodPIDs(os.Getpid()),
+				// core.NewCaptureMethodFileList(
+				// 	"/lib/x86_64-linux-gnu/libpthread-2.24.so",
+				// 	"/etc/hosts",
+				// ).Black("/etc"),
+				// core.NewCaptureMethodPIDs(pids...),
 			},
 		}
 
