@@ -6,14 +6,11 @@ import (
 )
 
 type Snapshot struct {
-	IdentifyFile string
-	Infos        FileInfos
+	Infos FileInfos
 }
 
-func createSnapshot(idFile string) *Snapshot {
-	snap := &Snapshot{
-		IdentifyFile: idFile,
-	}
+func createSnapshot() *Snapshot {
+	snap := &Snapshot{}
 	return snap
 }
 
@@ -21,8 +18,9 @@ func (s *Snapshot) Sort() {
 	sort.Slice(s.Infos, s.Infos.less)
 }
 
-func (s *Snapshot) Add(i FileInfo) {
+func (s *Snapshot) Add(i FileInfo) error {
 	s.Infos = append(s.Infos, i)
+	return nil
 }
 
 func (s *Snapshot) String() string {
@@ -30,8 +28,7 @@ func (s *Snapshot) String() string {
 	if fileSize == 0 {
 		fileSize = 1
 	}
-	return fmt.Sprintf("%q contains %d files, will occupy %s RAM size, about %d%% of total files",
-		s.IdentifyFile,
+	return fmt.Sprintf("%d files, will occupy %s RAM size, about %d%% of total files",
 		len(s.Infos),
 		HumanSize(ramSize),
 		ramSize*100/fileSize,
@@ -68,15 +65,28 @@ func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 	return nil
 }
 
-func CaptureSnapshot(identifyFile string, mps []string) (*Snapshot, error) {
-	snap := createSnapshot(identifyFile)
-	err := CaptureByMincores(mps, func(info FileInfo) error {
-		snap.Add(info)
-		return nil
-	})
-	if err != nil {
-		return nil, err
+func CaptureSnapshot(cfg CaptureConfig) (*Snapshot, error) {
+	snap := createSnapshot()
+
+	if len(cfg.Method) == 0 {
+		return nil, fmt.Errorf("It Must specify at least one Capture methods.")
 	}
+
+	for _, m := range cfg.Method {
+		var err error
+		switch m.Type {
+		case _MethodMincores:
+			err = CaptureByMincores(m.Mincores, snap.Add)
+		case _MethodPIDs:
+			err = CaptureByPIDs(m.PIDs, snap.Add)
+		default:
+			return nil, fmt.Errorf("Capture method %q is not support", m.Type)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return snap, nil
 }
 
@@ -122,12 +132,28 @@ type CaptureConfig struct {
 	Method []CaptureMethod
 }
 
-type CaptureMethod struct {
-	Type string //enum of Mincores, PID, CGroup, Static
+// Valid type of CaputreMethod
+const (
+	_MethodMincores = "mincores"
+	_MethodPIDs     = "pids"
+)
 
-	// 若dynamic则使用mincore动态检测PageRange的情况.
-	// 否则直接记录整个文件数据
-	UseMincore bool
+func CaptureMethodPIDs(pids ...int) CaptureMethod {
+	return CaptureMethod{
+		Type: _MethodPIDs,
+		PIDs: pids,
+	}
+}
+
+func CaptureMethodMincores(mountPoints ...string) CaptureMethod {
+	return CaptureMethod{
+		Type:     _MethodMincores,
+		Mincores: mountPoints,
+	}
+}
+
+type CaptureMethod struct {
+	Type string
 
 	// 最终文件一定只会出现在Whitelist目录列表下. 默认使用"/"
 	// 也可以传递具体的文件列表，
@@ -141,10 +167,7 @@ type CaptureMethod struct {
 	Mincores []string
 
 	// 2. "pid:$pid" 分析对应$pid的mapping文件
-	//PID int
-
-	// 3. "cgroup:/sys/fs/memory/2@dde/uiapps/3" 使用
-	//CGroup string
+	PIDs []int
 
 	// 4. "static:["$filename",[[$PageRange]]]" 直接传递实际数据．
 	// Static []struct {

@@ -36,10 +36,13 @@ func (s RPCService) ListConfig(_ bool, out *[]*core.SnapshotConfig) error {
 	return nil
 }
 
-func (RPCService) Capture(_ string, out *core.Snapshot) error {
-	snap, err := core.CaptureSnapshot("", []string{"/"})
+func (RPCService) Capture(cfg core.CaptureConfig, out *core.Snapshot) error {
+	snap, err := core.CaptureSnapshot(cfg)
+	if err != nil {
+		return err
+	}
 	*out = *snap
-	return err
+	return nil
 }
 
 func (RPCService) Apply(_ core.Snapshot, out *bool) error {

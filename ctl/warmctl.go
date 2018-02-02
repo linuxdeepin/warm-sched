@@ -1,46 +1,70 @@
 package main
 
 import (
+	"../core"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
+	"strconv"
+	"strings"
 )
 
-var debug bool
-
 type AppFlags struct {
-	load  bool // action of applying a snapshot
-	store bool // action of taking a application's snapshot. TODO: use -base to implement this logical
-	show  bool // action of show current page cache
-
-	cacheDir string // the base cache directory.
+	capture bool
+	apply   bool
 }
 
 func InitFlags() AppFlags {
 	var af AppFlags
 
-	flag.StringVar(&af.cacheDir, "cacheDir", "./warm-sched-cache", "base cache directory")
-
-	flag.BoolVar(&debug, "debug", false, "debug mode")
-	flag.BoolVar(&af.load, "load", false, "apply the snapshot")
-	flag.BoolVar(&af.store, "store", false, "take application of the snapshot")
+	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
+	flag.BoolVar(&af.apply, "a", false, "apply the snapshot")
 
 	flag.Parse()
 	return af
 }
 
+func CGroupPIDs(cpath string) ([]int, error) {
+	bs, err := ioutil.ReadFile(path.Join(cpath, "cgroup.procs"))
+	if err != nil {
+		return nil, err
+	}
+	var ret []int
+	for _, str := range strings.Fields(string(bs)) {
+		v, err := strconv.Atoi(str)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, v)
+	}
+	return ret, nil
+}
+
 func doActions(c RPCClient, af AppFlags, args []string) error {
 	var err error
 	switch {
-	case af.store:
-	case af.load:
-		//		err = daemon.LoadAndApply("abc.snap", true)
-	case af.show:
-		snap, err := c.Capture()
+	case af.capture:
+		// pids, err := CGroupPIDs("/sys/fs/cgroup/pids/user.slice/user-1000.slice/session-2.scope")
+		// if err != nil {
+		// 	return err
+		// }
+		test_cfg := core.CaptureConfig{
+			Method: []core.CaptureMethod{
+				//core.CaptureMethodMincores("/"),
+				core.CaptureMethodPIDs(os.Getpid()),
+				// core.CaptureMethodPIDs(pids...),
+			},
+		}
+
+		snap, err := c.Capture(test_cfg)
 		if err != nil {
 			return err
 		}
 		DumpSnapshot(snap)
+	case af.apply:
+		panic("not impement")
 	default:
 		cfgs, err := c.ListConfig()
 		if err != nil {

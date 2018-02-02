@@ -13,9 +13,9 @@ type RPCClient struct {
 	core *rpc.Client
 }
 
-func (c RPCClient) Capture() (*core.Snapshot, error) {
+func (c RPCClient) Capture(cfg core.CaptureConfig) (*core.Snapshot, error) {
 	var snap core.Snapshot
-	err := c.core.Call(RPCName+".Capture", "", &snap)
+	err := c.core.Call(RPCName+".Capture", cfg, &snap)
 	return &snap, err
 }
 

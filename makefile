@@ -9,6 +9,10 @@ build-daemon:
 clean:
 	rm -rf warmctl warm-daemon
 
+test:
+	cd daemon && go test
+	cd core && go test
+
 run-daemon: build-daemon
-	rm /run/user/1000/warm-sched.socket
+	-@rm /run/user/1000/warm-sched.socket
 	./warm-daemon
