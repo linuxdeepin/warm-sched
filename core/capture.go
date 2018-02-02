@@ -19,6 +19,9 @@ type CaptureMethod struct {
 
 	// 3. "filelist:["$filename"]" 直接传递实际数据．
 	FileList []string
+
+	// 4. "uiapp:wmclass"
+	WMClass string
 }
 
 func NewCaptureMethodPIDs(pids ...int) CaptureMethod {
@@ -53,6 +56,7 @@ const (
 	_MethodMincores = "mincores"
 	_MethodPIDs     = "pids"
 	_MethodFileList = "filelist"
+	_MethodUIApp    = "uiapp"
 )
 
 func DoCapture(m CaptureMethod, handle FileInfoHandleFunc) error {
@@ -63,6 +67,12 @@ func DoCapture(m CaptureMethod, handle FileInfoHandleFunc) error {
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
 		return _DoCaptureByFileList(m.FileList, true, m.wrap(handle))
+	case _MethodUIApp:
+		_m, err := NewCaptureMethodUIApp(m.WMClass)
+		if err != nil {
+			return err
+		}
+		return _DoCaptureByPIDs(_m.PIDs, m.wrap(handle))
 	default:
 		return fmt.Errorf("Capture method %q is not support", m.Type)
 	}

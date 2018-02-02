@@ -8,20 +8,17 @@
     },
     "Capture": {
         "ExpireLimit": 0,
-        "Aftter": ["uiapp:google-chrome"],
         "Method": [
             {
-                "Type": "UIApp",
-                "UseMincore": true,
-                "UIApp": "google-chrome.desktop"
+                "Type": "uiapp",
+                "WMClass": "deepin-terminal"
             },
             {
-                "Type": "static",
-                "UseMincore": true,
-                "Static": "$HOME/.config/google-chrome",
+                "Type": "filelist",
+                "FileList": ["$HOME/.config/google-chrome"],
                 "Blacklist": [
-                    "$root/Crash Reports",
-                    "$root/Webstore Downloads"
+                    "$HOME/.config/google-chrome/Crash Reports",
+                    "$HOME/.config/google-chrome/Webstore Downloads"
                 ]
             }
         ]

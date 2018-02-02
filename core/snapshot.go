@@ -65,7 +65,7 @@ func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 	return nil
 }
 
-func CaptureSnapshot(cfg CaptureConfig) (*Snapshot, error) {
+func CaptureSnapshot(cfg *CaptureConfig) (*Snapshot, error) {
 	if len(cfg.Method) == 0 {
 		return nil, fmt.Errorf("It Must specify at least one Capture methods.")
 	}

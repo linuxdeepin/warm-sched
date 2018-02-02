@@ -36,7 +36,7 @@ func (s RPCService) ListConfig(_ bool, out *[]*core.SnapshotConfig) error {
 	return nil
 }
 
-func (RPCService) Capture(cfg core.CaptureConfig, out *core.Snapshot) error {
+func (RPCService) Capture(cfg *core.CaptureConfig, out *core.Snapshot) error {
 	snap, err := core.CaptureSnapshot(cfg)
 	if err != nil {
 		return err

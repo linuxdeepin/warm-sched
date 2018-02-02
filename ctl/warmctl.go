@@ -1,14 +1,9 @@
 package main
 
 import (
-	"../core"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
-	"strconv"
-	"strings"
 )
 
 type AppFlags struct {
@@ -26,54 +21,30 @@ func InitFlags() AppFlags {
 	return af
 }
 
-func CGroupPIDs(cpath string) ([]int, error) {
-	bs, err := ioutil.ReadFile(path.Join(cpath, "cgroup.procs"))
-	if err != nil {
-		return nil, err
-	}
-	var ret []int
-	for _, str := range strings.Fields(string(bs)) {
-		v, err := strconv.Atoi(str)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, v)
-	}
-	return ret, nil
-}
-
 func doActions(c RPCClient, af AppFlags, args []string) error {
-	var err error
+	cfgs, err := c.ListConfig()
+	if err != nil {
+		return err
+	}
+
 	switch {
 	case af.capture:
-		// pids, err := CGroupPIDs("/sys/fs/cgroup/pids/user.slice/user-1000.slice/session-2.scope")
-		// if err != nil {
-		// 	return err
-		// }
-		test_cfg := core.CaptureConfig{
-			Method: []core.CaptureMethod{
-				//core.NewCaptureMethodMincores("/"),
-				core.NewCaptureMethodPIDs(os.Getpid()),
-				// core.NewCaptureMethodFileList(
-				// 	"/lib/x86_64-linux-gnu/libpthread-2.24.so",
-				// 	"/etc/hosts",
-				// ).Black("/etc"),
-				// core.NewCaptureMethodPIDs(pids...),
-			},
+		if len(args) == 0 {
+			return fmt.Errorf("Please specify configure name")
 		}
-
-		snap, err := c.Capture(test_cfg)
-		if err != nil {
-			return err
+		for _, cfg := range cfgs {
+			if cfg.Id != args[0] {
+				continue
+			}
+			snap, err := c.Capture(&cfg.Capture)
+			if err != nil {
+				return err
+			}
+			DumpSnapshot(snap)
 		}
-		DumpSnapshot(snap)
 	case af.apply:
 		panic("not impement")
 	default:
-		cfgs, err := c.ListConfig()
-		if err != nil {
-			return err
-		}
 		for _, cfg := range cfgs {
 			fmt.Println(cfg.Id, cfg.Description, cfg.TryFile)
 		}
