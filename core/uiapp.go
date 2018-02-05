@@ -12,9 +12,9 @@ import (
 
 type Finder func(pid int, wmclass string) bool
 
-func NewCaptureMethodUIApp(wmclass string) (CaptureMethod, error) {
+func NewCaptureMethodUIApp(wmclass string) (*CaptureMethod, error) {
 	if wmclass == "" {
-		return CaptureMethod{}, fmt.Errorf("It must specify wmclass for UIAPP")
+		return nil, fmt.Errorf("It must specify wmclass for UIAPP")
 	}
 	var pid int
 	fn := func(_pid int, _wmclass string) bool {
@@ -26,7 +26,7 @@ func NewCaptureMethodUIApp(wmclass string) (CaptureMethod, error) {
 	}
 	found := findPidInUIWindows(fn)
 	if !found || pid == 0 {
-		return CaptureMethod{}, fmt.Errorf("Not Found")
+		return nil, fmt.Errorf("Not Found")
 	}
 	cpath, err := _UIGroupFromPID(pid)
 	if err != nil {
@@ -89,10 +89,10 @@ func findPidInUIWindows(finder Finder) bool {
 			continue
 		}
 		wm, err := xprop.PropValStrs(xprop.GetProperty(xu, xid, "WM_CLASS"))
-		if err != nil || len(wm) == 0 {
+		if err != nil || len(wm) != 2 {
 			continue
 		}
-		if finder(int(pid), wm[0]) {
+		if finder(int(pid), wm[1]) {
 			return true
 		}
 	}

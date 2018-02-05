@@ -2,16 +2,16 @@
     "Id" : "google-chrome",
     "TryFile": "/opt/google/chrome/chrome",
     "Apply": {
-        "InitUsage": 10,
-        "After": [ { "scope": "snapshot", "id:": "DDE" } ],
-        "When": [ {"id":"idle"}, {"scope":"dde", "id":"dde-launcher"}]
+        "After" : [ "snapshot:DE" ]
     },
     "Capture": {
-        "ExpireLimit": 0,
+        "After": [ "x11:Google-chrome" ],
+        "WaitSecond": 3,
+
         "Method": [
             {
                 "Type": "uiapp",
-                "WMClass": "deepin-terminal"
+                "WMClass": "Google-chrome"
             },
             {
                 "Type": "filelist",

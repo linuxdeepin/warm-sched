@@ -1,0 +1,8 @@
+{
+    "Id" : "idle",
+    "Description": "dummy snapshot as a idle status",
+    "TryFile": "/usr/bin/startdde",
+    "Apply": {
+        "After": [ "snapshot:DDE" ]
+    }
+}

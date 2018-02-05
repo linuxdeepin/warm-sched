@@ -1,14 +1,14 @@
 {
-    "Id" : "DDE",
+    "Id" : "DE",
     "Description": "stuff about DDE",
     "TryFile": "/usr/bin/startdde",
     "Apply": {
-        "After": [ {"scope":"snapshot", "id":"BASIC"} ]
+        "Before": [ "systemd:user.slice"],
+        "After": [ "snapshot:BASIC" ]
     },
     "Capture": {
-        "ExpireLimit": 0,
-        "UseMincore": true,
-        "WhenAfter": ["dde:ready"],
+        "After": [ "dde:idle" ],
+        "Before": [ "snapshot:DE"],
         "Method": [
             {
                 "Type": "mincores",

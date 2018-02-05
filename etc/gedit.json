@@ -1,0 +1,16 @@
+{
+    "Id" : "gedit",
+    "TryFile": "/usr/bin/gedit",
+    "Apply": {
+        "After" : [ "snapshot:DE" ]
+    },
+    "Capture": {
+        "After": [ "x11:Gedit" ],
+        "Method": [
+            {
+                "Type": "uiapp",
+                "WMClass": "Gedit"
+            }
+        ]
+    }
+}

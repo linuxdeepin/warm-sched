@@ -2,6 +2,7 @@ package main
 
 import (
 	"../core"
+	"fmt"
 	"net"
 	"net/rpc"
 )
@@ -25,23 +26,27 @@ func RunRPCService(d *Daemon, netType string, addr string) error {
 	return nil
 }
 
-func (s RPCService) EmitEvent(in core.EventSource, out *bool) error {
-	s.daemon.events <- in
-	return nil
-}
-
-func (s RPCService) ListConfig(_ bool, out *[]*core.SnapshotConfig) error {
-	*out = s.daemon.cfgs
-	return nil
-}
-
-func (RPCService) Capture(cfg *core.CaptureConfig, out *core.Snapshot) error {
-	snap, err := core.CaptureSnapshot(cfg)
-	if err != nil {
-		return err
+func (s RPCService) ListConfig(_ bool, out *[]string) error {
+	var ret []string
+	for _, cfg := range s.daemon.cfgs {
+		ret = append(ret, cfg.Id)
 	}
-	*out = *snap
+	*out = ret
 	return nil
+}
+
+func (s RPCService) Capture(id string, out *core.Snapshot) error {
+	for _, cfg := range s.daemon.cfgs {
+		if cfg.Id == id {
+			snap, err := core.CaptureSnapshot(cfg.Capture.Method...)
+			if err != nil {
+				return err
+			}
+			*out = *snap
+			return nil
+		}
+	}
+	return fmt.Errorf("Not Found Configure of %q", id)
 }
 
 func (RPCService) Apply(_ core.Snapshot, out *bool) error {

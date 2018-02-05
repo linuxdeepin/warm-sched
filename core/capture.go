@@ -24,28 +24,28 @@ type CaptureMethod struct {
 	WMClass string
 }
 
-func NewCaptureMethodPIDs(pids ...int) CaptureMethod {
-	return CaptureMethod{
+func NewCaptureMethodPIDs(pids ...int) *CaptureMethod {
+	return &CaptureMethod{
 		Type: _MethodPIDs,
 		PIDs: pids,
 	}
 }
 
-func NewCaptureMethodFileList(list ...string) CaptureMethod {
-	return CaptureMethod{
+func NewCaptureMethodFileList(list ...string) *CaptureMethod {
+	return &CaptureMethod{
 		Type:     _MethodFileList,
 		FileList: list,
 	}
 }
 
-func NewCaptureMethodMincores(mountPoints ...string) CaptureMethod {
-	return CaptureMethod{
+func NewCaptureMethodMincores(mountPoints ...string) *CaptureMethod {
+	return &CaptureMethod{
 		Type:     _MethodMincores,
 		Mincores: mountPoints,
 	}
 }
 
-func (m CaptureMethod) Black(dir ...string) CaptureMethod {
+func (m *CaptureMethod) Black(dir ...string) *CaptureMethod {
 	//TODO reudce
 	m.Blacklist = append(m.Blacklist, dir...)
 	return m
@@ -59,7 +59,7 @@ const (
 	_MethodUIApp    = "uiapp"
 )
 
-func DoCapture(m CaptureMethod, handle FileInfoHandleFunc) error {
+func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	switch m.Type {
 	case _MethodMincores:
 		return _DoCaptureByMincores(m.Mincores, m.wrap(handle))

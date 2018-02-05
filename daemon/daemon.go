@@ -7,42 +7,37 @@ import (
 )
 
 type Daemon struct {
-	cfgs []*core.SnapshotConfig
+	cfgs []*SnapshotConfig
 
-	events chan core.EventSource
+	events chan EventSource
 
 	storage *Storeage
 
 	history *History
-
-	addr string
 }
 
-func (d *Daemon) Run() error {
-	return RunRPCService(d, "unix", d.addr)
+func (d *Daemon) RunRPC(socket string) error {
+	return RunRPCService(d, "unix", socket)
 }
 
-func NewDaemon(etc string, addr string) (*Daemon, error) {
-	cfgs, err := ScanConfigs(etc)
-	if err != nil {
-		return nil, err
-	}
-	return &Daemon{
-		addr: addr,
-		cfgs: cfgs,
-	}, nil
-}
+func RunDaemon(etc string, addr string) error {
+	d := &Daemon{}
 
-func RunDaemon() error {
-	d, err := NewDaemon("./etc", core.RPCSocket)
+	err := d.LoadConfigs(etc)
 	if err != nil {
 		return err
 	}
-	return d.Run()
+
+	err = d.Schedule()
+	if err != nil {
+		return err
+	}
+
+	return d.RunRPC(addr)
 }
 
 func main() {
-	err := RunDaemon()
+	err := RunDaemon("./etc", core.RPCSocket)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E:%v\n", err)
 		return

@@ -11,14 +11,14 @@ type RPCClient struct {
 	core *rpc.Client
 }
 
-func (c RPCClient) Capture(cfg *core.CaptureConfig) (*core.Snapshot, error) {
+func (c RPCClient) Capture(id string) (*core.Snapshot, error) {
 	var snap core.Snapshot
-	err := c.core.Call(core.RPCName+".Capture", cfg, &snap)
+	err := c.core.Call(core.RPCName+".Capture", id, &snap)
 	return &snap, err
 }
 
-func (c RPCClient) ListConfig() ([]*core.SnapshotConfig, error) {
-	var cfgs []*core.SnapshotConfig
+func (c RPCClient) ListConfig() ([]string, error) {
+	var cfgs []string
 	err := c.core.Call(core.RPCName+".ListConfig", true, &cfgs)
 	return cfgs, err
 }

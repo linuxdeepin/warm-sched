@@ -32,21 +32,17 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("Please specify configure name")
 		}
-		for _, cfg := range cfgs {
-			if cfg.Id != args[0] {
-				continue
-			}
-			snap, err := c.Capture(&cfg.Capture)
-			if err != nil {
-				return err
-			}
-			DumpSnapshot(snap)
+		snap, err := c.Capture(args[0])
+		if err != nil {
+			return err
 		}
+		DumpSnapshot(snap)
+
 	case af.apply:
 		panic("not impement")
 	default:
 		for _, cfg := range cfgs {
-			fmt.Println(cfg.Id, cfg.Description, cfg.TryFile)
+			fmt.Println(cfg)
 		}
 	}
 	return err

@@ -1,16 +1,15 @@
 {
     "Id" : "BASIC",
+
     "Description": "basic system snapshot",
-    "TryFile": "/bin/systemd",
+
     "Apply": {
-        "After": [ { "scope": "systemd", "id": "local-fs.target"} ]
+        "Before": ["systemd:sysinit.target"],
+        "After": [ "systemd:local-fs.target" ]
     },
     "Capture": {
-        "After": [ { "scope": "systemd", "id":"display-manager.service"} ],
-
-        "ExpireLimit": 0,
-
-        "UseMincore": true,
+        "Before": ["systemd:lightdm.service", "snapshot:BASIC"],
+        "After": [ "systemd:lightdm.service"],
 
         "Method": [
             {

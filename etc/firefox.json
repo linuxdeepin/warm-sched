@@ -1,0 +1,17 @@
+{
+    "Id" : "firefox",
+    "TryFile": "/usr/bin/firefox",
+    "Apply": {
+        "After" : [ "snapshot:DE" ]
+    },
+    "Capture": {
+        "After": [ "uiapp:Firefox" ],
+        "WaitSecond": 3,
+        "Method": [
+            {
+                "Type": "uiapp",
+                "WMClass": "Firefox"
+            }
+        ]
+    }
+}
