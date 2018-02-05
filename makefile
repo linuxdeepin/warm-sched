@@ -12,6 +12,7 @@ clean:
 test:
 	cd daemon && go test
 	cd core && go test
+	cd eventsource && go test
 
 run-daemon: build-daemon
 	./warm-daemon
