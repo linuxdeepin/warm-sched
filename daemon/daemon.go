@@ -34,9 +34,7 @@ func NewDaemon(etc string, addr string) (*Daemon, error) {
 }
 
 func RunDaemon() error {
-	var SOCKET = os.ExpandEnv("${XDG_RUNTIME_DIR}/warm-sched.socket")
-
-	d, err := NewDaemon("./etc", SOCKET)
+	d, err := NewDaemon("./etc", core.RPCSocket)
 	if err != nil {
 		return err
 	}

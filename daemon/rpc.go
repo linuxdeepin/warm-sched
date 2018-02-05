@@ -10,15 +10,14 @@ type RPCService struct {
 	daemon *Daemon
 }
 
-const RPCName = "daemon"
-
 func RunRPCService(d *Daemon, netType string, addr string) error {
 	l, err := net.Listen(netType, addr)
 	if err != nil {
 		return err
 	}
+
 	s := RPCService{d}
-	err = rpc.RegisterName(RPCName, s)
+	err = rpc.RegisterName(core.RPCName, s)
 	if err != nil {
 		return err
 	}

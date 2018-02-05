@@ -14,5 +14,4 @@ test:
 	cd core && go test
 
 run-daemon: build-daemon
-	-@rm /run/user/1000/warm-sched.socket
 	./warm-daemon
