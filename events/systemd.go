@@ -3,7 +3,6 @@ package events
 import (
 	"fmt"
 	"github.com/coreos/go-systemd/dbus"
-	"time"
 )
 
 func init() {
@@ -15,39 +14,6 @@ type _SystemdEventSources struct {
 }
 
 func (s *_SystemdEventSources) Scope() string { return "systemd" }
-
-func (s *_SystemdEventSources) Prepare(ids []string) error {
-	return nil
-}
-
-func (s *_SystemdEventSources) Stop() {
-	if s.stop != nil {
-		s.stop <- struct{}{}
-	}
-}
-
-func (s *_SystemdEventSources) Run() error {
-	if s.stop != nil {
-		return fmt.Errorf("BUG ON RUN")
-	}
-
-	scope := s.Scope()
-
-	s.stop = make(chan struct{})
-
-	for {
-		select {
-		case <-time.After(time.Second):
-			pending := Pendings(scope)
-			for _, id := range s.Check(pending) {
-				Emit(scope, id)
-			}
-		case <-s.stop:
-			s.stop = nil
-			return nil
-		}
-	}
-}
 
 func (s _SystemdEventSources) Check(names []string) []string {
 	conn, err := dbus.New()

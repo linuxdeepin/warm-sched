@@ -9,9 +9,6 @@ import (
 
 type Generator interface {
 	Scope() string
-	Prepare(ids []string) error
-	Run() error
-	Stop()
 	Check(ids []string) []string
 }
 
@@ -50,11 +47,11 @@ var _M_ = &_Manager{
 	waits:      make(map[int]_Wait),
 }
 
-func IsSupport(scope string) bool           { return _M_.isSupport(scope) }
-func Pendings(scope string) []string        { return _M_.Pendings(scope) }
-func Emit(scope string, id string) []string { return _M_.Emit(scope, id) }
-func Register(g Generator)                  { _M_.Register(g) }
-func Run() error                            { return _M_.Run() }
+func IsSupport(scope string) bool    { return _M_.isSupport(scope) }
+func Pendings(scope string) []string { return _M_.Pendings(scope) }
+func Emit(scope string, id string)   { _M_.Emit(scope, id) }
+func Register(g Generator)           { _M_.Register(g) }
+func Run() error                     { return _M_.Run() }
 
 func Check(es []string) []string { return _M_.Check(es) }
 func (m *_Manager) Check(es []string) []string {
@@ -127,39 +124,13 @@ func (m *_Manager) setup(es []string) error {
 	return nil
 }
 
-func (m *_Manager) startScopes() error {
-	var g sync.WaitGroup
-	for scope := range m.cache {
-		g.Add(1)
-		go func(s string) {
-			err := m.startScope(s)
-			if err != nil {
-				fmt.Printf("Error when monitor %q -> %v\n", s, err)
-			}
-			g.Done()
-		}(scope)
-	}
-	g.Wait()
-	return nil
-}
-
 // Emit mark the event is appeared.
 // Return the pendings and stop the generator if the scope hasn't any pendings
-func (m *_Manager) Emit(scope string, id string) []string {
+func (m *_Manager) Emit(scope string, id string) {
 	m.lock.Lock()
-	g, ok := m.generators[scope]
-	if !ok {
-		m.lock.Unlock()
-		panic("BUG ON Emit Event")
-	}
 	m.cache[scope][id] = true
 	fmt.Printf("Emit \"%s:%s\"\n", scope, id)
-	p := m.pendings(scope)
-	if len(p) == 0 {
-		go g.Stop()
-	}
 	m.lock.Unlock()
-	return p
 }
 
 func (m *_Manager) isDone(es []string) bool {
@@ -193,7 +164,7 @@ func (m *_Manager) pendings(scope string) []string {
 }
 
 func (m *_Manager) Run() error {
-	go m.startScopes()
+	go m.poll()
 
 	for {
 		var dels []int
@@ -214,27 +185,29 @@ func (m *_Manager) Run() error {
 			return nil
 		}
 		m.waitlock.Unlock()
+		fmt.Println("Waits...", m.waits)
 		time.Sleep(time.Second)
 	}
 }
 
-func (m *_Manager) startScope(scope string) error {
-	pendings := m.Pendings(scope)
-	if len(pendings) == 0 {
-		return nil
+func (m *_Manager) poll() {
+	fmt.Println("Start polling")
+	for {
+		anything := false
+		for scope, g := range m.generators {
+			pending := m.Pendings(scope)
+			if len(pending) == 0 {
+				continue
+			}
+			anything = true
+			for _, id := range g.Check(pending) {
+				m.Emit(scope, id)
+			}
+		}
+		if !anything {
+			break
+		}
+		time.Sleep(time.Second)
 	}
-
-	m.lock.Lock()
-	g := m.generators[scope]
-	m.lock.Unlock()
-
-	err := g.Prepare(pendings)
-	if err != nil {
-		fmt.Println("ERROR:", err)
-		return err
-	}
-	fmt.Printf("START scope %q\n", scope)
-	err = g.Run()
-	fmt.Printf("Stop scope %q\n", scope)
-	return err
+	fmt.Println("Quit polling")
 }

@@ -2,50 +2,33 @@ package events
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 )
 
 type timeoutScope struct {
-	points []int
+	start time.Time
 }
 
 func init() {
-	s := timeoutScope{}
+	s := timeoutScope{start: time.Now()}
 	Register(&s)
 }
 
-func (s *timeoutScope) Prepare(ids []string) error {
-	for _, id := range ids {
-		var t int
-		_, err := fmt.Sscanf(id, "%ds\n", &t)
-		if err != nil {
-			return err
-		}
-		s.points = append(s.points, t)
-	}
-	return nil
-}
-func (s *timeoutScope) Run() error {
-	ch := make(chan string)
-	var g sync.WaitGroup
-	for _, d := range s.points {
-		g.Add(1)
-		id := d
+func (timeoutScope) Scope() string { return "timeout" }
 
-		time.AfterFunc(time.Duration(d)*time.Second, func() {
-			Emit(s.Scope(), fmt.Sprintf("%ds", id))
-			g.Done()
-		})
+func (s timeoutScope) Check(points []string) []string {
+	elapse := time.Now().Sub(s.start).Seconds()
+	var ret []string
+	for _, p := range points {
+		var t int
+		fmt.Sscanf(p, "%ds\n", &t)
+		if elapse >= float64(t) {
+			ret = append(ret, p)
+		}
 	}
-	g.Wait()
-	close(ch)
-	return nil
+	return ret
 }
-func (s timeoutScope) Stop()                 {}
-func (timeoutScope) Scope() string           { return "timeout" }
-func (timeoutScope) Check([]string) []string { return nil }
 
 func TestSystemd(t *testing.T) {
 	err := Connect([]string{"systemd:ssh.service"}, nil)
@@ -69,7 +52,7 @@ func TestWait(t *testing.T) {
 		t.Error("Shouldn't support empty events")
 	}
 
-	err = Connect([]string{"timeout:1s", "timeout:2s"}, nil)
+	err = Connect([]string{"timeout:1s", "timeout:5s"}, nil)
 	if err != nil {
 		t.Error("Should support timeout events")
 	}

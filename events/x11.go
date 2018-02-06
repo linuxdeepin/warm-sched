@@ -3,7 +3,6 @@ package events
 import (
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xprop"
-	"time"
 )
 
 type X11Source struct {
@@ -15,22 +14,7 @@ func init() {
 
 const x11Scope = "x11"
 
-func (X11Source) Scope() string              { return x11Scope }
-func (X11Source) Prepare(ids []string) error { return nil }
-func (X11Source) Stop()                      {}
-
-func (s X11Source) Run() error {
-	for {
-		p := Pendings(x11Scope)
-		if len(p) == 0 {
-			return nil
-		}
-		for _, id := range s.Check(p) {
-			Emit(x11Scope, id)
-		}
-		time.Sleep(time.Second)
-	}
-}
+func (X11Source) Scope() string { return x11Scope }
 
 func (s X11Source) Check(names []string) []string {
 	xu, err := xgbutil.NewConnDisplay("")
