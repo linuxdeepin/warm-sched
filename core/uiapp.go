@@ -76,6 +76,7 @@ func findPidInUIWindows(finder Finder) bool {
 		fmt.Println("findPidInUIWindows:", err)
 		return false
 	}
+	defer xu.Conn().Close()
 
 	ws, err := xprop.PropValWindows(xprop.GetProperty(xu, xu.RootWin(), "_NET_CLIENT_LIST"))
 	if err != nil {

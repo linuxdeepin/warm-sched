@@ -2,12 +2,9 @@ package main
 
 import (
 	"../core"
-	"fmt"
 	"io/ioutil"
 	"path"
 )
-
-type EventSource string
 
 type SnapshotConfig struct {
 	Id          string
@@ -29,11 +26,11 @@ type ApplyConfig struct {
 
 	// 列表中所有条目的都被加载后，再进行此次加载
 	// 比如UI Apps类型的snapshot都应该等待DE被加载再执行
-	After []EventSource
+	After []string
 
 	// 某事件源正在发生时才进行加载
 	// 如LaunchRunning, DockRuning, DSCRunning
-	In []EventSource
+	In []string
 }
 
 type CaptureConfig struct {
@@ -41,7 +38,7 @@ type CaptureConfig struct {
 	// 大于零则每次Apply之后对应值减一
 	ExpireLimit int
 
-	After []EventSource
+	After []string
 
 	Method []*core.CaptureMethod
 }
@@ -79,14 +76,4 @@ func (d *Daemon) LoadConfigs(dir string) error {
 	}
 	d.cfgs = cfgs
 	return nil
-}
-
-func (d *Daemon) Schedule() error {
-	// 1. ensure configures is valid
-	// 2. schedule apply chains
-	// 3. schedule capture chains
-
-	fmt.Println("Will Schedule %d jobs", len(d.cfgs))
-	return nil
-	//panic("Not Implement")
 }

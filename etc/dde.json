@@ -7,7 +7,7 @@
         "After": [ "snapshot:BASIC" ]
     },
     "Capture": {
-        "After": [ "dde:idle" ],
+        "After": [ "inner:idle" ],
         "Before": [ "snapshot:DE"],
         "Method": [
             {

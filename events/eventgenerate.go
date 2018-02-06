@@ -38,21 +38,31 @@ func Pendings(scope string) []string        { return _M_.Pendings(scope) }
 func Sink(scope string, id string) []string { return _M_.Sink(scope, id) }
 func Register(g Generator)                  { _M_.Register(g) }
 
-func (m *_Manager) isSupport(scope string) bool {
+func splitEvent(raw string) (string, string, bool) {
+	fs := strings.SplitN(raw, ":", 2)
+	if len(fs) != 2 {
+		return "", "", false
+	}
+	return fs[0], fs[1], true
+}
+
+func (m *_Manager) isSupport(raw string) bool {
+	scope, _, ok := splitEvent(raw)
+	if !ok {
+		return false
+	}
 	m.lock.Lock()
-	_, ok := m.generators[scope]
+	_, ok = m.generators[scope]
 	m.lock.Unlock()
 	return ok
 }
 
 func (m *_Manager) WaitAll(es ...string) error {
 	for _, e := range es {
-		fs := strings.SplitN(e, ":", 2)
-		if len(fs) != 2 {
+		scope, id, ok := splitEvent(e)
+		if !ok {
 			return fmt.Errorf("Illegal event format %q", e)
 		}
-		scope, id := fs[0], fs[1]
-
 		m.lock.Lock()
 		if _, ok := m.generators[scope]; !ok {
 			m.lock.Unlock()

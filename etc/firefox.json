@@ -5,7 +5,7 @@
         "After" : [ "snapshot:DE" ]
     },
     "Capture": {
-        "After": [ "uiapp:Firefox" ],
+        "After": [ "x11:Firefox" ],
         "WaitSecond": 3,
         "Method": [
             {
