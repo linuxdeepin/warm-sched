@@ -38,7 +38,8 @@ type CaptureConfig struct {
 	// 大于零则每次Apply之后对应值减一
 	ExpireLimit int
 
-	After []string
+	After  []string
+	Before []string
 
 	Method []*core.CaptureMethod
 }
@@ -64,7 +65,12 @@ func ScanConfigs(dir string) ([]*SnapshotConfig, error) {
 		if err != nil {
 			return nil, err
 		}
+		if v.TryFile != "" && !FileExist(v.TryFile) {
+			Log("Ignore %q because %q doesn't exists\n", fname, v.TryFile)
+			continue
+		}
 		ret = append(ret, v)
+
 	}
 	return ret, nil
 }

@@ -43,29 +43,39 @@ func (s *timeoutScope) Run() error {
 	close(ch)
 	return nil
 }
-func (s timeoutScope) Stop()       {}
-func (timeoutScope) Scope() string { return "timeout" }
+func (s timeoutScope) Stop()                 {}
+func (timeoutScope) Scope() string           { return "timeout" }
+func (timeoutScope) Check([]string) []string { return nil }
 
 func TestSystemd(t *testing.T) {
-	err := WaitAll("systemd:ssh.service")
+	err := Connect([]string{"systemd:ssh.service"}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	err = Run()
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestWait(t *testing.T) {
-	err := WaitAll("")
+	err := Connect(nil, nil)
 	if err == nil {
 		t.Error("Shouldn't support illegal format events")
 	}
 
-	err = WaitAll("non-exists:abc")
+	err = Connect([]string{"non-exists:abc"}, nil)
 	if err == nil {
 		t.Error("Shouldn't support empty events")
 	}
 
-	err = WaitAll("timeout:1s", "timeout:2s")
+	err = Connect([]string{"timeout:1s", "timeout:2s"}, nil)
 	if err != nil {
 		t.Error("Should support timeout events")
+	}
+
+	err = Run()
+	if err != nil {
+		t.Error(err)
 	}
 }

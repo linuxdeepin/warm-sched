@@ -9,8 +9,6 @@ import (
 type Daemon struct {
 	cfgs []*SnapshotConfig
 
-	storage *Storeage
-
 	history *History
 }
 

@@ -7,7 +7,13 @@ import (
 	"os"
 )
 
-type Storeage struct {
+func FileExist(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
+func Log(fmtStr string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, fmtStr, args...)
 }
 
 func StoreTo(fname string, o interface{}) error {

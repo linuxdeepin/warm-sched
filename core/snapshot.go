@@ -28,7 +28,7 @@ func (s *Snapshot) String() string {
 	if fileSize == 0 {
 		fileSize = 1
 	}
-	return fmt.Sprintf("%d files, will occupy %s RAM size, about %d%% of total files",
+	return fmt.Sprintf("%d files occupied %s RAM size, about %d%% of total files",
 		len(s.Infos),
 		HumanSize(ramSize),
 		ramSize*100/fileSize,

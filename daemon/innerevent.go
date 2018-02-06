@@ -13,16 +13,8 @@ func init() {
 	events.Register(&snapshotSource{})
 }
 
-func (innerSource) Scope() string              { return "inner" }
-func (innerSource) Prepare(ids []string) error { return nil }
-func (innerSource) Stop()                      {}
-func (s innerSource) Run() error               { events.Emit(s.Scope(), "idle"); return nil }
-
-// implement snapshot apply events
-type snapshotSource struct {
-}
-
-func (snapshotSource) Scope() string              { return "snapshot" }
-func (snapshotSource) Prepare(ids []string) error { panic("not implement") }
-func (snapshotSource) Stop()                      {}
-func (s snapshotSource) Run() error               { return nil }
+func (innerSource) Scope() string               { return "inner" }
+func (innerSource) Prepare(ids []string) error  { return nil }
+func (innerSource) Check(ids []string) []string { return nil }
+func (innerSource) Stop()                       {}
+func (s innerSource) Run() error                { events.Emit(s.Scope(), "idle"); return nil }

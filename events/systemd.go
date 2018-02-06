@@ -39,7 +39,7 @@ func (s *_SystemdEventSources) Run() error {
 		select {
 		case <-time.After(time.Second):
 			pending := Pendings(scope)
-			for _, id := range checkSystemd(pending) {
+			for _, id := range s.Check(pending) {
 				Emit(scope, id)
 			}
 		case <-s.stop:
@@ -49,7 +49,7 @@ func (s *_SystemdEventSources) Run() error {
 	}
 }
 
-func checkSystemd(names []string) []string {
+func (s _SystemdEventSources) Check(names []string) []string {
 	conn, err := dbus.New()
 	if err != nil {
 		fmt.Println("E:", err)

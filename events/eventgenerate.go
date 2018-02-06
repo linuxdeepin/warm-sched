@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Generator interface {
@@ -11,12 +12,28 @@ type Generator interface {
 	Prepare(ids []string) error
 	Run() error
 	Stop()
+	Check(ids []string) []string
+}
+
+type _Wait struct {
+	events   []string
+	callback func()
 }
 
 type _Manager struct {
-	lock       sync.RWMutex
+	lock       sync.RWMutex //protect cache and generators
 	cache      map[string]map[string]bool
 	generators map[string]Generator
+
+	waitlock sync.Mutex //protect waits and counts
+	waits    map[int]_Wait
+	counts   int
+}
+
+func (m *_Manager) newid() int {
+	m.counts++
+	v := m.counts
+	return v
 }
 
 func (m *_Manager) Register(g Generator) {
@@ -30,13 +47,35 @@ func (m *_Manager) Register(g Generator) {
 var _M_ = &_Manager{
 	cache:      make(map[string]map[string]bool),
 	generators: make(map[string]Generator),
+	waits:      make(map[int]_Wait),
 }
 
 func IsSupport(scope string) bool           { return _M_.isSupport(scope) }
-func WaitAll(es ...string) error            { return _M_.WaitAll(es...) }
 func Pendings(scope string) []string        { return _M_.Pendings(scope) }
 func Emit(scope string, id string) []string { return _M_.Emit(scope, id) }
 func Register(g Generator)                  { _M_.Register(g) }
+func Run() error                            { return _M_.Run() }
+
+func Check(es []string) []string { return _M_.Check(es) }
+func (m *_Manager) Check(es []string) []string {
+	var ret []string
+	for _, raw := range es {
+		scope, id, ok := splitEvent(raw)
+		if !ok {
+			continue
+		}
+		g, ok := m.generators[scope]
+		if !ok {
+			continue
+		}
+		if len(g.Check([]string{id})) == 1 {
+			ret = append(ret, raw)
+		}
+	}
+	return ret
+}
+
+func Connect(es []string, callback func()) error { return _M_.Connect(es, callback) }
 
 func splitEvent(raw string) (string, string, bool) {
 	fs := strings.SplitN(raw, ":", 2)
@@ -57,7 +96,21 @@ func (m *_Manager) isSupport(raw string) bool {
 	return ok
 }
 
-func (m *_Manager) WaitAll(es ...string) error {
+func (m *_Manager) Connect(es []string, callback func()) error {
+	if len(es) == 0 {
+		return fmt.Errorf("At least one event to connect")
+	}
+	err := m.setup(es)
+	if err != nil {
+		return err
+	}
+	m.waitlock.Lock()
+	m.waits[m.newid()] = _Wait{es, callback}
+	m.waitlock.Unlock()
+	return nil
+}
+
+func (m *_Manager) setup(es []string) error {
 	for _, e := range es {
 		scope, id, ok := splitEvent(e)
 		if !ok {
@@ -71,7 +124,23 @@ func (m *_Manager) WaitAll(es ...string) error {
 		m.cache[scope][id] = false
 		m.lock.Unlock()
 	}
-	return m.run()
+	return nil
+}
+
+func (m *_Manager) startScopes() error {
+	var g sync.WaitGroup
+	for scope := range m.cache {
+		g.Add(1)
+		go func(s string) {
+			err := m.startScope(s)
+			if err != nil {
+				fmt.Printf("Error when monitor %q -> %v\n", s, err)
+			}
+			g.Done()
+		}(scope)
+	}
+	g.Wait()
+	return nil
 }
 
 // Emit mark the event is appeared.
@@ -93,6 +162,19 @@ func (m *_Manager) Emit(scope string, id string) []string {
 	return p
 }
 
+func (m *_Manager) isDone(es []string) bool {
+	m.lock.Lock()
+	for _, raw := range es {
+		scope, id, ok := splitEvent(raw)
+		if !ok || !m.cache[scope][id] {
+			m.lock.Unlock()
+			return false
+		}
+	}
+	m.lock.Unlock()
+	return true
+}
+
 // Pendings return the number of floats
 func (m *_Manager) Pendings(scope string) []string {
 	m.lock.Lock()
@@ -110,20 +192,30 @@ func (m *_Manager) pendings(scope string) []string {
 	return ret
 }
 
-func (m *_Manager) run() error {
-	var g sync.WaitGroup
-	for scope := range m.cache {
-		g.Add(1)
-		go func(s string) {
-			err := m.startScope(s)
-			if err != nil {
-				fmt.Printf("Error when monitor %q -> %v\n", s, err)
+func (m *_Manager) Run() error {
+	go m.startScopes()
+
+	for {
+		var dels []int
+		m.waitlock.Lock()
+		for id, w := range m.waits {
+			if m.isDone(w.events) {
+				dels = append(dels, id)
+				if w.callback != nil {
+					w.callback()
+				}
 			}
-			g.Done()
-		}(scope)
+		}
+		for _, id := range dels {
+			delete(m.waits, id)
+		}
+		if len(m.waits) == 0 {
+			m.waitlock.Unlock()
+			return nil
+		}
+		m.waitlock.Unlock()
+		time.Sleep(time.Second)
 	}
-	g.Wait()
-	return nil
 }
 
 func (m *_Manager) startScope(scope string) error {

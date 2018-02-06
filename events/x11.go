@@ -25,14 +25,14 @@ func (s X11Source) Run() error {
 		if len(p) == 0 {
 			return nil
 		}
-		for _, id := range checkX11(p) {
+		for _, id := range s.Check(p) {
 			Emit(x11Scope, id)
 		}
 		time.Sleep(time.Second)
 	}
 }
 
-func checkX11(names []string) []string {
+func (s X11Source) Check(names []string) []string {
 	xu, err := xgbutil.NewConnDisplay("")
 	if err != nil {
 		return nil
