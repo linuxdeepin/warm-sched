@@ -1,6 +1,7 @@
 package main
 
 import (
+	"../core"
 	"../events"
 	"fmt"
 	"time"
@@ -21,12 +22,23 @@ func (d *Daemon) CaptureEvents() ([]string, []string, error) {
 }
 
 func (d *Daemon) scheduleApplys() error {
+	doApply := func(name string) error {
+		err := d.history.DoApply(name)
+		if err != nil {
+			Log("DoApply %q failed: %v\n", name, err)
+			return err
+		} else {
+			Log("DoApply %q\n", name)
+			return nil
+		}
+	}
 	for _, cfg := range d.cfgs {
 		apply := cfg.Apply
 		name := cfg.Id
 
 		if !d.history.Has(name) {
 			Log("Ignore apply %q because hasn't any samples.\n", name)
+			continue
 		}
 
 		afters := apply.After
@@ -37,27 +49,31 @@ func (d *Daemon) scheduleApplys() error {
 			continue
 		}
 
+		var err error
 		if len(afters) == 0 {
-			err := d.history.DoApply(name)
-			if err != nil {
-				return err
-			}
+			err = doApply(name)
 		} else {
-			err := events.Connect(afters, func() {
-				err := d.history.DoApply(name)
-				if err != nil {
-					Log("Capture %q failed:%v", name, err)
-				}
-			})
-			if err != nil {
-				return err
-			}
+			err = events.Connect(afters, func() { doApply(name) })
+		}
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (d *Daemon) scheduleCaptures() error {
+	doCapture := func(name string, methods []*core.CaptureMethod) error {
+		err := d.history.DoCapture(name, methods)
+		if err != nil {
+			Log("DoCapture %q failed: %v\n", name, err)
+			return err
+		} else {
+			Log("DoCapture %q\n", name)
+			return nil
+		}
+	}
+
 	for _, cfg := range d.cfgs {
 		capture := cfg.Capture
 		name := cfg.Id
@@ -76,21 +92,14 @@ func (d *Daemon) scheduleCaptures() error {
 			continue
 		}
 
+		var err error
 		if len(afters) == 0 {
-			err := d.history.DoCapture(name, methods)
-			if err != nil {
-				return err
-			}
+			err = doCapture(name, methods)
 		} else {
-			err := events.Connect(afters, func() {
-				err := d.history.DoCapture(name, methods)
-				if err != nil {
-					Log("Capture %q failed:%v", name, err)
-				}
-			})
-			if err != nil {
-				return err
-			}
+			err = events.Connect(afters, func() { doCapture(name, methods) })
+		}
+		if err != nil {
+			return err
 		}
 	}
 	return nil

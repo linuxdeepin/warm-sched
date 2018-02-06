@@ -2,8 +2,10 @@ package main
 
 import (
 	"../core"
+	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 type Daemon struct {
@@ -34,7 +36,20 @@ func RunDaemon(etc string, cache, addr string) error {
 }
 
 func main() {
-	err := RunDaemon("./etc", "./cache", core.RPCSocket)
+	cfgDir := flag.String("etc", "./etc", "the directory of snapshot configures")
+	cacheDir := flag.String("cache", "./cache", "the directory of caching")
+	socket := flag.String("socket", core.RPCSocket, "the unix socket address.")
+
+	timeout := flag.Int("timeout", 60*10, "Maximum seconds to wait")
+
+	flag.Parse()
+
+	time.AfterFunc(time.Duration(*timeout)*time.Second, func() {
+		Log("Timeout, so normal quitting daemon.\n")
+		os.Exit(0)
+	})
+
+	err := RunDaemon(*cfgDir, *cacheDir, *socket)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E:%v\n", err)
 		return
