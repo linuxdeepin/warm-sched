@@ -7,8 +7,7 @@ import (
 )
 
 type Daemon struct {
-	cfgs []*SnapshotConfig
-
+	cfgs    []*SnapshotConfig
 	history *History
 }
 
@@ -16,8 +15,10 @@ func (d *Daemon) RunRPC(socket string) error {
 	return RunRPCService(d, "unix", socket)
 }
 
-func RunDaemon(etc string, addr string) error {
-	d := &Daemon{}
+func RunDaemon(etc string, cache, addr string) error {
+	d := &Daemon{
+		history: NewHistory(cache),
+	}
 
 	err := d.LoadConfigs(etc)
 	if err != nil {
@@ -33,7 +34,7 @@ func RunDaemon(etc string, addr string) error {
 }
 
 func main() {
-	err := RunDaemon("./etc", core.RPCSocket)
+	err := RunDaemon("./etc", "./cache", core.RPCSocket)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E:%v\n", err)
 		return

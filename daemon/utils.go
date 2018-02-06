@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 )
 
 func FileExist(p string) bool {
@@ -12,11 +13,23 @@ func FileExist(p string) bool {
 	return err == nil
 }
 
+func EnsureDir(d string) error {
+	info, err := os.Stat(d)
+	if err == nil && !info.IsDir() {
+		return fmt.Errorf("%q is not a directory", d)
+	}
+	return os.MkdirAll(d, 0755)
+}
+
 func Log(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
 }
 
 func StoreTo(fname string, o interface{}) error {
+	err := EnsureDir(path.Dir(fname))
+	if err != nil {
+		return err
+	}
 	w, err := os.Create(fname)
 	if err != nil {
 		return err

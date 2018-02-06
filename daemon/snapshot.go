@@ -2,11 +2,26 @@ package main
 
 import (
 	"../core"
+	"../events"
 	"fmt"
+	"path"
 	"sync"
 )
 
 type History struct {
+	cacheDir string
+	ss       *snapshotSource
+}
+
+func NewHistory(cache string) *History {
+	ss := &snapshotSource{
+		loaded: make(map[string]bool),
+	}
+	events.Register(ss)
+	return &History{
+		cacheDir: cache,
+		ss:       ss,
+	}
 }
 
 // implement snapshot apply events
@@ -15,9 +30,13 @@ type snapshotSource struct {
 	loaded map[string]bool
 }
 
-func (*snapshotSource) Scope() string              { return "snapshot" }
-func (*snapshotSource) Prepare(ids []string) error { return nil }
+func (s *snapshotSource) markLoaded(id string) {
+	s.lock.Lock()
+	s.loaded[id] = true
+	s.lock.Unlock()
+}
 
+func (*snapshotSource) Scope() string { return "snapshot" }
 func (s *snapshotSource) Check(ids []string) []string {
 	var ret []string
 	s.lock.Lock()
@@ -29,18 +48,19 @@ func (s *snapshotSource) Check(ids []string) []string {
 	s.lock.Unlock()
 	return ret
 }
-func (*snapshotSource) Stop()        {}
-func (s *snapshotSource) Run() error { return nil }
 
-func (*Daemon) DoCapture(id string, methods []*core.CaptureMethod) error {
+func (h *History) DoCapture(id string, methods []*core.CaptureMethod) error {
 	snap, err := core.CaptureSnapshot(methods...)
 	if err != nil {
 		return fmt.Errorf("DoCapture %q failed: %v", id, err)
 	}
+	defer h.ss.markLoaded(id)
 	Log("Capture %q....%v\n", id, snap)
-	return nil
+	return StoreTo(h.path(id), snap)
 }
 
-func (*Daemon) DoApply(id string) error {
+func (h *History) path(id string) string { return path.Join(h.cacheDir, id) }
+
+func (*History) DoApply(id string) error {
 	panic("Not Implement")
 }

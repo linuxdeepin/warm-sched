@@ -42,13 +42,13 @@ func (d *Daemon) Schedule() error {
 		}
 
 		if len(afters) == 0 {
-			err := d.DoCapture(name, methods)
+			err := d.history.DoCapture(name, methods)
 			if err != nil {
 				return err
 			}
 		} else {
 			err := events.Connect(afters, func() {
-				err := d.DoCapture(name, methods)
+				err := d.history.DoCapture(name, methods)
 				if err != nil {
 					Log("Capture %q failed:%v", name, err)
 				}
