@@ -30,16 +30,14 @@ type ApplyConfig struct {
 
 	// 某事件源正在发生时才进行加载
 	// 如LaunchRunning, DockRuning, DSCRunning
-	In []string
+	Before []string
 }
 
 type CaptureConfig struct {
-	// 小于等于零则, 只会Capture一次
-	// 大于零则每次Apply之后对应值减一
-	ExpireLimit int
-
 	After  []string
 	Before []string
+
+	AlwaysLoad bool
 
 	Method []*core.CaptureMethod
 }

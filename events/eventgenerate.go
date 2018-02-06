@@ -52,6 +52,7 @@ func Pendings(scope string) []string { return _M_.Pendings(scope) }
 func Emit(scope string, id string)   { _M_.Emit(scope, id) }
 func Register(g Generator)           { _M_.Register(g) }
 func Run() error                     { return _M_.Run() }
+func Scopes() []string               { return _M_.Scopes() }
 
 func Check(es []string) []string { return _M_.Check(es) }
 func (m *_Manager) Check(es []string) []string {
@@ -80,6 +81,16 @@ func splitEvent(raw string) (string, string, bool) {
 		return "", "", false
 	}
 	return fs[0], fs[1], true
+}
+
+func (m *_Manager) Scopes() []string {
+	var ret []string
+	m.lock.RLock()
+	for s := range m.generators {
+		ret = append(ret, s)
+	}
+	m.lock.RUnlock()
+	return ret
 }
 
 func (m *_Manager) isSupport(raw string) bool {
@@ -185,7 +196,6 @@ func (m *_Manager) Run() error {
 			return nil
 		}
 		m.waitlock.Unlock()
-		fmt.Println("Waits...", m.waits)
 		time.Sleep(time.Second)
 	}
 }

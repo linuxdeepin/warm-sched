@@ -49,6 +49,9 @@ func (s *snapshotSource) Check(ids []string) []string {
 	return ret
 }
 
+func (h *History) Has(id string) bool    { return FileExist(h.path(id)) }
+func (h *History) path(id string) string { return path.Join(h.cacheDir, id) }
+
 func (h *History) DoCapture(id string, methods []*core.CaptureMethod) error {
 	snap, err := core.CaptureSnapshot(methods...)
 	if err != nil {
@@ -59,8 +62,13 @@ func (h *History) DoCapture(id string, methods []*core.CaptureMethod) error {
 	return StoreTo(h.path(id), snap)
 }
 
-func (h *History) path(id string) string { return path.Join(h.cacheDir, id) }
-
-func (*History) DoApply(id string) error {
-	panic("Not Implement")
+func (h *History) DoApply(id string) error {
+	var snap core.Snapshot
+	err := LoadFrom(h.path(id), &snap)
+	if err != nil {
+		return err
+	}
+	err = core.ApplySnapshot(&snap, false)
+	Log("Apply %q....%v\n", id, err)
+	return err
 }
