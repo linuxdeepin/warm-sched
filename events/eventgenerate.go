@@ -35,7 +35,7 @@ var _M_ = &_Manager{
 func IsSupport(scope string) bool           { return _M_.isSupport(scope) }
 func WaitAll(es ...string) error            { return _M_.WaitAll(es...) }
 func Pendings(scope string) []string        { return _M_.Pendings(scope) }
-func Sink(scope string, id string) []string { return _M_.Sink(scope, id) }
+func Emit(scope string, id string) []string { return _M_.Emit(scope, id) }
 func Register(g Generator)                  { _M_.Register(g) }
 
 func splitEvent(raw string) (string, string, bool) {
@@ -74,17 +74,17 @@ func (m *_Manager) WaitAll(es ...string) error {
 	return m.run()
 }
 
-// Sink mark the event is appeared.
+// Emit mark the event is appeared.
 // Return the pendings and stop the generator if the scope hasn't any pendings
-func (m *_Manager) Sink(scope string, id string) []string {
+func (m *_Manager) Emit(scope string, id string) []string {
 	m.lock.Lock()
 	g, ok := m.generators[scope]
 	if !ok {
 		m.lock.Unlock()
-		panic("BUG ON SINK")
+		panic("BUG ON Emit Event")
 	}
 	m.cache[scope][id] = true
-	fmt.Printf("Sink \"%s:%s\"\n", scope, id)
+	fmt.Printf("Emit \"%s:%s\"\n", scope, id)
 	p := m.pendings(scope)
 	if len(p) == 0 {
 		go g.Stop()

@@ -40,7 +40,7 @@ func (s *_SystemdEventSources) Run() error {
 		case <-time.After(time.Second):
 			pending := Pendings(scope)
 			for _, id := range checkSystemd(pending) {
-				Sink(scope, id)
+				Emit(scope, id)
 			}
 		case <-s.stop:
 			s.stop = nil

@@ -26,7 +26,7 @@ func (s X11Source) Run() error {
 			return nil
 		}
 		for _, id := range checkX11(p) {
-			Sink(x11Scope, id)
+			Emit(x11Scope, id)
 		}
 		time.Sleep(time.Second)
 	}

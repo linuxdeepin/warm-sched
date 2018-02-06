@@ -35,7 +35,7 @@ func (s *timeoutScope) Run() error {
 		id := d
 
 		time.AfterFunc(time.Duration(d)*time.Second, func() {
-			Sink(s.Scope(), fmt.Sprintf("%ds", id))
+			Emit(s.Scope(), fmt.Sprintf("%ds", id))
 			g.Done()
 		})
 	}
