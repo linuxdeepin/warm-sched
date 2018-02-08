@@ -31,7 +31,7 @@ func (s timeoutScope) Check(points []string) []string {
 }
 
 func TestSystemd(t *testing.T) {
-	err := Connect([]string{"systemd:ssh.service"}, nil)
+	err := Connect([]string{"systemd:local-fs.target"}, nil)
 	if err != nil {
 		t.Error(err)
 	}

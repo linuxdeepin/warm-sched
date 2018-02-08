@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=trigger-warm-sched-take-full
-Exec=sh -c "sleep 5 && /bin/warm-sched-take-full"
-TryExec=/bin/warm-sched-take-full
-NoDisplay=true
-

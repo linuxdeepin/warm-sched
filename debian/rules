@@ -2,7 +2,7 @@
 
 export GOPATH:=/usr/share/gocode
 DESTDIR=debian/tmp
-VERSION:=0.1.0
+VERSION:=0.2.0
 
 %:
 	dh $@ --with dkms --with systemd
@@ -10,16 +10,12 @@ VERSION:=0.1.0
 override_dh_auto_install:
 	mkdir -p $(DESTDIR)/usr/src/mincores-$(VERSION)
 	mkdir -p $(DESTDIR)/usr/lib/modules-load.d/
-	mkdir -p $(DESTDIR)/lib/systemd/system/
-	mkdir -p $(DESTDIR)/var/cache/warm-sched/apps
+	mkdir -p $(DESTDIR)/var/lib/warm-sched/etc
+	mkdir -p $(DESTDIR)/var/lib/warm-sched/cache
 
 	cp -ar kernel/* $(DESTDIR)/usr/src/mincores-$(VERSION)/
-	cp -ar systemd/* $(DESTDIR)/lib/systemd/system/
 	echo mincores > $(DESTDIR)/usr/lib/modules-load.d/minores.conf
 
-	mkdir -p $(DESTDIR)/etc/xdg/autostart $(DESTDIR)/bin/ $(DESTDIR)/usr/share/polkit-1/actions/
-	cp -ar debian/trigger-warm-sched-take-full.desktop $(DESTDIR)/etc/xdg/autostart
-	cp -ar debian/warm-sched-take-full ./bin/
-	cp -ar debian/com.deepin.warm-sched-take-full.policy $(DESTDIR)/usr/share/polkit-1/actions/
+	cp -rf etc/* $(DESTDIR)/var/lib/warm-sched/etc/
 
 	dh_auto_install

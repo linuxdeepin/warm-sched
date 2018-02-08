@@ -18,7 +18,7 @@ func (d *Daemon) RunRPC(socket string) error {
 	return RunRPCService(d, "unix", socket)
 }
 
-func RunDaemon(etc string, cache, addr string) error {
+func RunDaemon(etc string, cache, addr string, auto bool) error {
 	d := &Daemon{
 		history: NewHistory(cache),
 	}
@@ -26,13 +26,17 @@ func RunDaemon(etc string, cache, addr string) error {
 	if err != nil {
 		return err
 	}
+	if auto {
+		go d.Schedule()
+	}
 	return d.RunRPC(addr)
 }
 
 func main() {
-	cfgDir := flag.String("etc", "./etc", "th edirectory of snapshot configures")
+	cfgDir := flag.String("etc", "./etc", "the directory of snapshot configures")
 	cacheDir := flag.String("cache", "./cache", "the directory of caching")
 	socket := flag.String("socket", core.RPCSocket, "the unix socket address.")
+	auto := flag.Bool("auto", true, "automatically schedule")
 
 	timeout := flag.Int("timeout", 60*10, "Maximum seconds to wait")
 
@@ -43,7 +47,7 @@ func main() {
 		os.Exit(0)
 	})
 
-	err := RunDaemon(*cfgDir, *cacheDir, *socket)
+	err := RunDaemon(*cfgDir, *cacheDir, *socket, *auto)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E:%v\n", err)
 		return

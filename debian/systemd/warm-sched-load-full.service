@@ -1,9 +1,0 @@
-[Unit]
-Description=Load the PageCache for Full
-After=warm-sched-load-basic.service warm-sched-take-basic.service
-
-[Service]
-ExecStart=/bin/warm-sched -cacheDir=/var/cache/warm-sched/ -apply-all
-
-[Install]
-WantedBy=graphical.target

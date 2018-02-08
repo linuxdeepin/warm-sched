@@ -1,5 +1,2 @@
 /bin
-/lib/systemd/system/
-/var/cache/warm-sched/
-/etc/xdg/autostart
-/usr/share/polkit-1/actions
+/var/lib/warm-sched/

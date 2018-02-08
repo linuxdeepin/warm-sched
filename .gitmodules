@@ -1,0 +1,15 @@
+[submodule "vendor/src/github.com/coreos/go-systemd"]
+	path = vendor/src/github.com/coreos/go-systemd
+	url = https://github.com/coreos/go-systemd
+[submodule "vendor/src/github.com/BurntSushi/xgbutil"]
+	path = vendor/src/github.com/BurntSushi/xgbutil
+	url = https://github.com/BurntSushi/xgbutil
+[submodule "vendor/src/github.com/BurntSushi/xgb"]
+	path = vendor/src/github.com/BurntSushi/xgb
+	url = https://github.com/BurntSushi/xgb
+[submodule "vendor/src/github.com/godbus/dbus"]
+	path = vendor/src/github.com/godbus/dbus
+	url = https://github.com/godbus/dbus
+[submodule "vendor/src/golang.org/x/sys"]
+	path = vendor/src/golang.org/x/sys
+	url = https://github.com/golang/sys
