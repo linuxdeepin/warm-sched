@@ -49,6 +49,18 @@ func (s RPCService) Capture(id string, out *core.Snapshot) error {
 	return fmt.Errorf("Not Found Configure of %q", id)
 }
 
+func (s RPCService) Schedule(_ string, out *bool) error {
+	err := s.daemon.Schedule()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s RPCService) SchedulePendings(_ string, out *map[string][]string) error {
+	*out = EventWaits()
+	return nil
+}
+
 func (RPCService) Apply(_ core.Snapshot, out *bool) error {
 	panic("Not implement")
 }

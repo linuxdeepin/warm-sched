@@ -7,8 +7,9 @@ import (
 )
 
 type AppFlags struct {
-	capture bool
-	apply   bool
+	capture  bool
+	apply    bool
+	schedule bool
 }
 
 func InitFlags() AppFlags {
@@ -16,6 +17,7 @@ func InitFlags() AppFlags {
 
 	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
 	flag.BoolVar(&af.apply, "a", false, "apply the snapshot")
+	flag.BoolVar(&af.schedule, "s", false, "schedule handle snapshot by configures")
 
 	flag.Parse()
 	return af
@@ -39,7 +41,9 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 		DumpSnapshot(snap)
 
 	case af.apply:
-		panic("not impement")
+		panic("not impement apply operatin")
+	case af.schedule:
+		err = c.Schedule()
 	default:
 		for _, cfg := range cfgs {
 			fmt.Println(cfg)

@@ -14,6 +14,7 @@ type Daemon struct {
 }
 
 func (d *Daemon) RunRPC(socket string) error {
+	Log("RunRPC at %q\n", socket)
 	return RunRPCService(d, "unix", socket)
 }
 
@@ -21,22 +22,15 @@ func RunDaemon(etc string, cache, addr string) error {
 	d := &Daemon{
 		history: NewHistory(cache),
 	}
-
 	err := d.LoadConfigs(etc)
 	if err != nil {
 		return err
 	}
-
-	err = d.Schedule()
-	if err != nil {
-		return err
-	}
-
 	return d.RunRPC(addr)
 }
 
 func main() {
-	cfgDir := flag.String("etc", "./etc", "the directory of snapshot configures")
+	cfgDir := flag.String("etc", "./etc", "th edirectory of snapshot configures")
 	cacheDir := flag.String("cache", "./cache", "the directory of caching")
 	socket := flag.String("socket", core.RPCSocket, "the unix socket address.")
 

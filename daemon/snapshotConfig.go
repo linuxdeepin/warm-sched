@@ -58,7 +58,11 @@ func ScanConfigs(dir string) ([]*SnapshotConfig, error) {
 		if finfo.IsDir() {
 			continue
 		}
-		fname := path.Join(dir, finfo.Name())
+		baseName := finfo.Name()
+		if path.Ext(baseName) != ".json" {
+			continue
+		}
+		fname := path.Join(dir, baseName)
 		v, err := LoadConfig(fname)
 		if err != nil {
 			return nil, err

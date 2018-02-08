@@ -2,10 +2,10 @@ package main
 
 import (
 	"../core"
+	"fmt"
 	"net/rpc"
+	"time"
 )
-
-//var SOCKET = os.ExpandEnv("${XDG_RUNTIME_DIR}/warm-sched.socket")
 
 type RPCClient struct {
 	core *rpc.Client
@@ -15,6 +15,30 @@ func (c RPCClient) Capture(id string) (*core.Snapshot, error) {
 	var snap core.Snapshot
 	err := c.core.Call(core.RPCName+".Capture", id, &snap)
 	return &snap, err
+}
+
+func (c RPCClient) Schedule() error {
+	var serr chan error
+	go func() {
+		serr <- c.core.Call(core.RPCName+".Schedule", "", nil)
+	}()
+
+	for {
+		select {
+		case <-time.After(time.Second):
+			var list map[string][]string
+			err := c.core.Call(core.RPCName+".SchedulePendings", "", &list)
+			if err != nil {
+				return err
+			}
+			for scope, vs := range list {
+				fmt.Printf("Wait %v@%q\n", vs, scope)
+			}
+		case e := <-serr:
+			fmt.Println("Schedule Done")
+			return e
+		}
+	}
 }
 
 func (c RPCClient) ListConfig() ([]string, error) {

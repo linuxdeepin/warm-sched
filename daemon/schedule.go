@@ -4,7 +4,6 @@ import (
 	"../core"
 	"../events"
 	"fmt"
-	"time"
 )
 
 func (d *Daemon) CaptureEvents() ([]string, []string, error) {
@@ -118,25 +117,17 @@ func (d *Daemon) Schedule() error {
 		Log("Schedule Capture failed: %v", err)
 	}
 
-	go dumpWaitings()
-
 	// 3. wait all events
 	return events.Run()
 }
 
-func dumpWaitings() {
-	for {
-		time.Sleep(time.Second * 5)
-		anything := false
-		for _, s := range events.Scopes() {
-			p := events.Pendings(s)
-			if len(p) != 0 {
-				Log("Waiting %v@%s\n", p, s)
-				anything = true
-			}
-		}
-		if !anything {
-			return
+func EventWaits() map[string][]string {
+	var ret = make(map[string][]string)
+	for _, s := range events.Scopes() {
+		p := events.Pendings(s)
+		if len(p) != 0 {
+			ret[s] = p
 		}
 	}
+	return ret
 }
