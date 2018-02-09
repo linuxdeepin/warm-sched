@@ -87,5 +87,5 @@ func (h *History) DoApply(id string) error {
 	if err != nil {
 		return err
 	}
-	return core.ApplySnapshot(&snap, false)
+	return core.ApplySnapshot(&snap, true)
 }
