@@ -3,7 +3,7 @@
     "TryFile": "/usr/bin/gedit",
     "Apply": {
         "Before" : [ "inner:low-memory" ],
-        "After" : [ "inner:user" ]
+        "After" : [ "snapshot:DE" ]
     },
     "Capture": {
         "After": [ "inner:user", "x11:Gedit" ],

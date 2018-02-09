@@ -3,11 +3,11 @@
     "Description": "stuff about DDE",
     "TryFile": "/usr/bin/startdde",
     "Apply": {
-        "Before": [ "systemd:user.slice"],
+        "Before": [ "inner:user" ],
         "After": [ "snapshot:BASIC" ]
     },
     "Capture": {
-        "After": [ "inner:idle" ],
+        "After": [ "inner:user" ],
         "Before": [ "snapshot:DE"],
         "Method": [
             {
