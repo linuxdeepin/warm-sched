@@ -12,7 +12,7 @@
         "Method": [
             {
                 "Type": "mincores",
-                "Mincores": ["/", "$HOME"],
+                "Mincores": ["/", "/home"],
                 "Blacklist": ["/var/lib/lastore", "$HOME/.config/pulse"]
             }
         ]

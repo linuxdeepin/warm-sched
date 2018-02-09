@@ -77,7 +77,6 @@ func (h *History) DoCapture(id string, methods []*core.CaptureMethod) error {
 	if err != nil {
 		return fmt.Errorf("DoCapture %q failed: %v", id, err)
 	}
-	defer h.ss.markLoaded(id)
 	return StoreTo(h.path(id), snap)
 }
 
@@ -87,5 +86,10 @@ func (h *History) DoApply(id string) error {
 	if err != nil {
 		return err
 	}
-	return core.ApplySnapshot(&snap, true)
+	err = core.ApplySnapshot(&snap, true)
+	if err != nil {
+		return err
+	}
+	h.ss.markLoaded(id)
+	return nil
 }
