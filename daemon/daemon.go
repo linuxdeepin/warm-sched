@@ -17,6 +17,8 @@ type Daemon struct {
 	innerSource *innerSource
 
 	userEnv map[string]string
+
+	scheduling bool
 }
 
 func (d *Daemon) SwitchUserSession(envs map[string]string) error {

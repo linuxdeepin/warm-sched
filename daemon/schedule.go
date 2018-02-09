@@ -106,6 +106,11 @@ func (d *Daemon) scheduleCaptures() error {
 }
 
 func (d *Daemon) Schedule(ctx context.Context) error {
+	if d.scheduling {
+		return nil
+	}
+	d.scheduling = true
+	defer func() { d.scheduling = false }()
 	// 1. schedule apply chains
 	err := d.scheduleCaptures()
 	if err != nil {
