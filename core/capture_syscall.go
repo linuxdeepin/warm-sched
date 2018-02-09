@@ -36,9 +36,9 @@ func FileMincore(fname string) (FileInfo, error) {
 	sinfo := info.Sys().(*syscall.Stat_t)
 
 	return FileInfo{
-		Name:    fname,
-		Size:    uint64(size),
-		Mapping: mappings,
+		Name:     fname,
+		FileSize: uint64(size),
+		Mapping:  mappings,
 
 		dev:    sinfo.Dev,
 		sector: sector,

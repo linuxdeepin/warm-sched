@@ -12,9 +12,9 @@ type PageRange struct {
 }
 
 type FileInfo struct {
-	Name    string
-	Mapping []PageRange
-	Size    uint64
+	Name     string
+	Mapping  []PageRange
+	FileSize uint64
 
 	dev    uint64
 	sector uint64
@@ -29,10 +29,10 @@ func (info FileInfo) String() string {
 }
 
 func (info FileInfo) Percentage() int {
-	if info.Size == 0 {
+	if info.FileSize == 0 {
 		return 0
 	}
-	return 100 * info.RAMSize() / int(info.Size)
+	return 100 * info.RAMSize() / int(roundPageCount(int64(info.FileSize))*pageSize)
 }
 
 func (info FileInfo) RAMSize() int {

@@ -61,6 +61,12 @@ func (s RPCService) SchedulePendings(_ string, out *map[string][]string) error {
 	return nil
 }
 
+func (s RPCService) SnapStatus(_ string, out *[]SnapStatus) error {
+	v := s.daemon.history.SnapStatus()
+	*out = v
+	return nil
+}
+
 func (RPCService) Apply(_ core.Snapshot, out *bool) error {
 	panic("Not implement")
 }

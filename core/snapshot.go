@@ -39,7 +39,7 @@ func (s *Snapshot) sizes() (int, int) {
 	var ret1, ret2 int
 	for _, r := range s.Infos {
 		ret1 += r.RAMSize()
-		ret2 += int(r.Size)
+		ret2 += int(r.FileSize)
 	}
 	return ret1, ret2
 }

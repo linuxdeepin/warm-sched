@@ -26,6 +26,22 @@ func (r SimpleCaptureResult) Has(name string) bool {
 	return false
 }
 
+func TestTMPFS(t *testing.T) {
+	f := os.ExpandEnv("${XDG_RUNTIME_DIR}/dconf/user")
+	_, err := os.Lstat(f)
+	if err != nil {
+		t.Skip("There hasn't the dconf runtime data")
+	}
+	info, err := FileMincore(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Percentage() > 100 {
+		t.Log(info.RAMSize(), info.FileSize)
+		t.Fatalf("Invalid percentage value %v for %q", info.Percentage(), f)
+	}
+}
+
 func TestBlackList(t *testing.T) {
 	libs, err := filepath.Glob("/lib/*")
 	if err != nil {

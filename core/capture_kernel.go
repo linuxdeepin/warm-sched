@@ -100,11 +100,11 @@ func buildFileInfoFromKernel(fname string, bn int64, filePages int64, mapping st
 		return FileInfo{}, err
 	}
 	return FileInfo{
-		Name:    fname,
-		Mapping: bm,
-		Size:    uint64(filePages) * uint64(pageSize),
-		dev:     0,
-		sector:  uint64(bn),
+		Name:     fname,
+		Mapping:  bm,
+		FileSize: uint64(filePages) * uint64(pageSize),
+		dev:      0,
+		sector:   uint64(bn),
 	}, nil
 }
 

@@ -39,7 +39,6 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 			return err
 		}
 		DumpSnapshot(snap)
-
 	case af.apply:
 		panic("not impement apply operatin")
 	case af.schedule:

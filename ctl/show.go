@@ -9,10 +9,10 @@ func DumpSnapshot(snap *core.Snapshot) error {
 
 	for _, info := range snap.Infos {
 		totalFile++
-		totalFileSize += int(info.Size)
+		totalFileSize += int(info.FileSize)
 		if len(info.Mapping) > 0 {
 			usedFile++
-			totalUsedFileSize += int(info.Size)
+			totalUsedFileSize += int(info.FileSize)
 			totalRAMSize += info.RAMSize()
 			fmt.Println(info)
 		}

@@ -127,6 +127,7 @@ func TestVerifyMincores(t *testing.T) {
 	_DoCaptureByMincores([]string{"/"}, func(info FileInfo) error {
 		if info.Name ==
 			"/usr/lib/python2.7/plat-x86_64-linux-gnu/_sysconfigdata_nd.pyc" {
+			// TODO : fix this
 			return nil
 		}
 		err := VerifyBySyscall(info)
@@ -148,7 +149,7 @@ func VerifyBySyscall(info FileInfo) error {
 	r1, r2 := info.Mapping, info2.Mapping
 	if !reflect.DeepEqual(r1, r2) {
 		return fmt.Errorf("WTF: %s \n\tKern:%v(%d)\n\tSys:%v(%d)\n", info2.Name,
-			r1, int(info.Size)/pageSize, r2, int(info2.Size)/pageSize)
+			r1, int(info.FileSize)/pageSize, r2, int(info2.FileSize)/pageSize)
 	}
 	return nil
 }
