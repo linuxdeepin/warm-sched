@@ -43,6 +43,9 @@ func (c RPCClient) Schedule() error {
 			if err != nil {
 				return err
 			}
+			if len(list) == 0 {
+				return nil
+			}
 			for scope, vs := range list {
 				fmt.Printf("Wait %v@%q\n", vs, scope)
 			}
