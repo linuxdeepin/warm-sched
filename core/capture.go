@@ -2,11 +2,14 @@ package core
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
 type CaptureMethod struct {
 	Type string
+
+	Envs map[string]string
 
 	//blacklist中出现的文件或文件夹会被忽略
 	Blacklist []string
@@ -62,8 +65,11 @@ const (
 func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	switch m.Type {
 	case _MethodMincores:
-		return _DoCaptureByMincores(m.Mincores, m.wrap(handle))
+		mps := calcRealTargets(_ReduceFilePath(m.Getenv, m.Mincores...), SystemMountPoints)
+		fmt.Println("MPS:", mps)
+		return _DoCaptureByMincores(mps, m.wrap(handle))
 	case _MethodPIDs:
+		fmt.Println("MPS:", m.Envs)
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
 		return _DoCaptureByFileList(m.FileList, true, m.wrap(handle))
@@ -78,12 +84,30 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	}
 }
 
+func (m *CaptureMethod) SetEnvs(envs map[string]string) {
+	if m.Envs == nil {
+		m.Envs = envs
+		return
+	}
+	for k, v := range envs {
+		m.Envs[k] = v
+	}
+}
+
+func (m CaptureMethod) Getenv(key string) string {
+	v, ok := m.Envs[key]
+	if !ok {
+		return os.Getenv(key)
+	}
+	return v
+}
+
 func (m CaptureMethod) wrap(fn FileInfoHandleFunc) FileInfoHandleFunc {
 	if len(m.Blacklist) == 0 {
 		return fn
 	}
 
-	blacklist := _ReduceFilePath(m.Blacklist...)
+	blacklist := _ReduceFilePath(m.Getenv, m.Blacklist...)
 
 	inBlacklist := func(name string) bool {
 		for _, rule := range blacklist {
@@ -104,13 +128,13 @@ func (m CaptureMethod) wrap(fn FileInfoHandleFunc) FileInfoHandleFunc {
 
 // real capture methods
 
-func _DoCaptureByMincores(mps []string, handle FileInfoHandleFunc) error {
+func _DoCaptureByMincores(mountpoints []string, handle FileInfoHandleFunc) error {
 	if err := supportProduceByKernel(); err != nil {
 		return err
 	}
 	ch := make(chan FileInfo)
 
-	go generateFileInfoByKernel(ch, mps)
+	go generateFileInfoByKernel(ch, mountpoints)
 
 	for info := range ch {
 		if err := handle(info); err != nil {
@@ -128,6 +152,7 @@ func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 	for _, fname := range fs {
 		finfo, err := FileMincore(fname)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "FileMincoe %q : %v\n", fname, err)
 			continue
 		}
 		if err := handle(finfo); err != nil {

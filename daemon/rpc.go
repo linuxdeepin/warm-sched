@@ -2,26 +2,37 @@ package main
 
 import (
 	"../core"
+	"context"
 	"fmt"
 	"net"
 	"net/rpc"
+	"time"
 )
 
 type RPCService struct {
 	daemon *Daemon
 }
 
-func RunRPCService(d *Daemon, netType string, addr string) error {
+func RunRPCService(ctx context.Context, d *Daemon, netType string, addr string) error {
 	l, err := net.Listen(netType, addr)
 	if err != nil {
 		return err
 	}
-
 	s := RPCService{d}
 	err = rpc.RegisterName(core.RPCName, s)
 	if err != nil {
 		return err
 	}
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				l.Close()
+				return
+			case <-time.After(time.Second):
+			}
+		}
+	}()
 	rpc.Accept(l)
 	return nil
 }
@@ -33,6 +44,10 @@ func (s RPCService) ListConfig(_ bool, out *[]string) error {
 	}
 	*out = ret
 	return nil
+}
+
+func (s RPCService) SwitchUserSession(env map[string]string, out *bool) error {
+	return s.daemon.SwitchUserSession(env)
 }
 
 func (s RPCService) Capture(id string, out *core.Snapshot) error {
@@ -50,7 +65,7 @@ func (s RPCService) Capture(id string, out *core.Snapshot) error {
 }
 
 func (s RPCService) Schedule(_ string, out *bool) error {
-	err := s.daemon.Schedule()
+	err := s.daemon.Schedule(context.TODO())
 	if err != nil {
 		return err
 	}

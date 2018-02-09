@@ -4,6 +4,7 @@ import (
 	"../core"
 	"fmt"
 	"net/rpc"
+	"os"
 	"time"
 )
 
@@ -15,6 +16,17 @@ func (c RPCClient) Capture(id string) (*core.Snapshot, error) {
 	var snap core.Snapshot
 	err := c.core.Call(core.RPCName+".Capture", id, &snap)
 	return &snap, err
+}
+
+func (c RPCClient) SwitchUserSession() error {
+	var noused bool
+	env := map[string]string{
+		"HOME":       os.Getenv("HOME"),
+		"DISPLAY":    os.Getenv("DISPLAY"),
+		"XAUTHORITY": os.Getenv("XAUTHORITY"),
+	}
+	err := c.core.Call(core.RPCName+".SwitchUserSession", env, &noused)
+	return err
 }
 
 func (c RPCClient) Schedule() error {

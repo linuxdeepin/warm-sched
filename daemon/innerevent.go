@@ -1,16 +1,25 @@
 package main
 
-import (
-	"../events"
-)
-
 // implement idle and full events
 type innerSource struct {
+	IsInUser bool
 }
 
-func init() {
-	events.Register(&innerSource{})
+func (innerSource) Scope() string { return "inner" }
+func (s innerSource) Check(ids []string) []string {
+	var ret []string
+	for _, id := range ids {
+		switch id {
+		case "user":
+			if s.IsInUser {
+				ret = append(ret, id)
+			}
+		case "low-memory":
+		}
+	}
+	return ret
 }
 
-func (innerSource) Scope() string               { return "inner" }
-func (innerSource) Check(ids []string) []string { return []string{"idle"} }
+func (s *innerSource) MarkUser() {
+	s.IsInUser = true
+}

@@ -7,9 +7,10 @@ import (
 )
 
 type AppFlags struct {
-	capture  bool
-	apply    bool
-	schedule bool
+	capture      bool
+	apply        bool
+	schedule     bool
+	switchToUser bool
 }
 
 func InitFlags() AppFlags {
@@ -18,6 +19,7 @@ func InitFlags() AppFlags {
 	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
 	flag.BoolVar(&af.apply, "a", false, "apply the snapshot")
 	flag.BoolVar(&af.schedule, "s", false, "schedule handle snapshot by configures")
+	flag.BoolVar(&af.switchToUser, "u", false, "let warm-daemon switch on this session")
 
 	flag.Parse()
 	return af
@@ -43,6 +45,8 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 		panic("not impement apply operatin")
 	case af.schedule:
 		err = c.Schedule()
+	case af.switchToUser:
+		err = c.SwitchUserSession()
 	default:
 		for _, cfg := range cfgs {
 			fmt.Println(cfg)

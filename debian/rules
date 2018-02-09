@@ -12,10 +12,14 @@ override_dh_auto_install:
 	mkdir -p $(DESTDIR)/usr/lib/modules-load.d/
 	mkdir -p $(DESTDIR)/var/lib/warm-sched/etc
 	mkdir -p $(DESTDIR)/var/lib/warm-sched/cache
+	mkdir -p $(DESTDIR)/etc/xdg/autostart
+
 
 	cp -ar kernel/* $(DESTDIR)/usr/src/mincores-$(VERSION)/
 	echo mincores > $(DESTDIR)/usr/lib/modules-load.d/minores.conf
 
 	cp -rf etc/* $(DESTDIR)/var/lib/warm-sched/etc/
+
+	cp debian/warm-sched-user.desktop $(DESTDIR)/etc/xdg/autostart
 
 	dh_auto_install

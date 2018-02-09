@@ -94,10 +94,10 @@ func ListMountPoints() []string {
 	return ret
 }
 
-func _ReduceFilePath(fs ...string) []string {
+func _ReduceFilePath(expandFn func(string) string, fs ...string) []string {
 	cache := make(map[string]bool)
 	for _, f := range fs {
-		ff := os.ExpandEnv(f)
+		ff := os.Expand(f, expandFn)
 		cache[ff] = true
 	}
 	var ret []string

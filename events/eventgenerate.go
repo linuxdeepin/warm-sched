@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -51,7 +52,7 @@ func IsSupport(scope string) bool    { return _M_.isSupport(scope) }
 func Pendings(scope string) []string { return _M_.Pendings(scope) }
 func Emit(scope string, id string)   { _M_.Emit(scope, id) }
 func Register(g Generator)           { _M_.Register(g) }
-func Run() error                     { return _M_.Run() }
+func Run(ctx context.Context) error  { return _M_.Run(ctx) }
 func Scopes() []string               { return _M_.Scopes() }
 
 func Check(es []string) []string { return _M_.Check(es) }
@@ -174,50 +175,61 @@ func (m *_Manager) pendings(scope string) []string {
 	return ret
 }
 
-func (m *_Manager) Run() error {
-	go m.poll()
+func (m *_Manager) Run(ctx context.Context) error {
+	go m.poll(ctx)
 
 	for {
-		var dels []int
-		m.waitlock.Lock()
-		for id, w := range m.waits {
-			if m.isDone(w.events) {
-				dels = append(dels, id)
-				if w.callback != nil {
-					w.callback()
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			var dels []int
+			m.waitlock.Lock()
+			for id, w := range m.waits {
+				if m.isDone(w.events) {
+					dels = append(dels, id)
+					if w.callback != nil {
+						w.callback()
+					}
 				}
 			}
-		}
-		for _, id := range dels {
-			delete(m.waits, id)
-		}
-		if len(m.waits) == 0 {
+			for _, id := range dels {
+				delete(m.waits, id)
+			}
+			if len(m.waits) == 0 {
+				m.waitlock.Unlock()
+				return nil
+			}
 			m.waitlock.Unlock()
-			return nil
+			time.Sleep(time.Second)
 		}
-		m.waitlock.Unlock()
-		time.Sleep(time.Second)
 	}
 }
 
-func (m *_Manager) poll() {
+func (m *_Manager) poll(ctx context.Context) {
 	fmt.Println("Start polling")
 	for {
-		anything := false
-		for scope, g := range m.generators {
-			pending := m.Pendings(scope)
-			if len(pending) == 0 {
-				continue
+		select {
+		case <-ctx.Done():
+			goto end
+		default:
+			anything := false
+			for scope, g := range m.generators {
+				pending := m.Pendings(scope)
+				if len(pending) == 0 {
+					continue
+				}
+				anything = true
+				for _, id := range g.Check(pending) {
+					m.Emit(scope, id)
+				}
 			}
-			anything = true
-			for _, id := range g.Check(pending) {
-				m.Emit(scope, id)
+			if !anything {
+				goto end
 			}
+			time.Sleep(time.Second)
 		}
-		if !anything {
-			break
-		}
-		time.Sleep(time.Second)
 	}
+end:
 	fmt.Println("Quit polling")
 }

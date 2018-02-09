@@ -31,12 +31,10 @@ func calcRealTargets(dirs []string, mps []string) []string {
 	return ret
 }
 
-func generateFileInfoByKernel(ch chan<- FileInfo, dirs []string) {
+func generateFileInfoByKernel(ch chan<- FileInfo, mountpoints []string) {
 	defer close(ch)
 
-	mps := calcRealTargets(_ReduceFilePath(dirs...), SystemMountPoints)
-
-	for _, t := range mps {
+	for _, t := range mountpoints {
 		collectMincores(ch, t)
 	}
 }

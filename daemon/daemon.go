@@ -2,6 +2,8 @@ package main
 
 import (
 	"../core"
+	"../events"
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -11,25 +13,59 @@ import (
 type Daemon struct {
 	cfgs    []*SnapshotConfig
 	history *History
+
+	innerSource *innerSource
+
+	userEnv map[string]string
 }
 
-func (d *Daemon) RunRPC(socket string) error {
+func (d *Daemon) SwitchUserSession(envs map[string]string) error {
+	if len(envs) == 0 {
+		return fmt.Errorf("Empty envs")
+	}
+	if d.userEnv != nil {
+		return fmt.Errorf("There already has a session switched")
+	}
+	d.innerSource.MarkUser()
+	d.userEnv = envs
+	for _, cfg := range d.cfgs {
+		for _, m := range cfg.Capture.Method {
+			m.SetEnvs(d.userEnv)
+		}
+	}
+	for k, v := range d.userEnv {
+		switch k {
+		case "DISPLAY", "XAUTHORITY":
+			os.Setenv(k, v)
+		}
+	}
+	return nil
+}
+
+func (d *Daemon) RunRPC(ctx context.Context, socket string) error {
 	Log("RunRPC at %q\n", socket)
-	return RunRPCService(d, "unix", socket)
+	return RunRPCService(ctx, d, "unix", socket)
 }
 
 func RunDaemon(etc string, cache, addr string, auto bool) error {
 	d := &Daemon{
-		history: NewHistory(cache),
+		history:     NewHistory(cache),
+		innerSource: &innerSource{},
 	}
+	events.Register(d.innerSource)
+
 	err := d.LoadConfigs(etc)
 	if err != nil {
 		return err
 	}
+	ctx := context.Background()
 	if auto {
-		go d.Schedule()
+		go func() {
+			v := d.Schedule(ctx)
+			fmt.Println("HHHH:", v)
+		}()
 	}
-	return d.RunRPC(addr)
+	return d.RunRPC(ctx, addr)
 }
 
 func main() {
@@ -49,7 +85,7 @@ func main() {
 
 	err := RunDaemon(*cfgDir, *cacheDir, *socket, *auto)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "E:%v\n", err)
+		fmt.Fprintf(os.Stderr, "E main:%v\n", err)
 		return
 	}
 }

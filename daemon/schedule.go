@@ -3,6 +3,7 @@ package main
 import (
 	"../core"
 	"../events"
+	"context"
 	"fmt"
 )
 
@@ -104,7 +105,7 @@ func (d *Daemon) scheduleCaptures() error {
 	return nil
 }
 
-func (d *Daemon) Schedule() error {
+func (d *Daemon) Schedule(ctx context.Context) error {
 	// 1. schedule apply chains
 	err := d.scheduleCaptures()
 	if err != nil {
@@ -118,7 +119,7 @@ func (d *Daemon) Schedule() error {
 	}
 
 	// 3. wait all events
-	return events.Run()
+	return events.Run(ctx)
 }
 
 func EventWaits() map[string][]string {

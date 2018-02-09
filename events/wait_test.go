@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ func TestSystemd(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = Run()
+	err = Run(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,7 +58,7 @@ func TestWait(t *testing.T) {
 		t.Error("Should support timeout events")
 	}
 
-	err = Run()
+	err = Run(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}

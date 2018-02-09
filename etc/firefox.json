@@ -2,10 +2,10 @@
     "Id" : "firefox",
     "TryFile": "/usr/bin/firefox",
     "Apply": {
-        "After" : [ "snapshot:DE" ]
+        "After" : [ "inner:user" ]
     },
     "Capture": {
-        "After": [ "x11:Firefox" ],
+        "After": [ "inner:user", "x11:Firefox" ],
         "WaitSecond": 3,
         "Method": [
             {

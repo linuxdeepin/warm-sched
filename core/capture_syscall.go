@@ -31,7 +31,10 @@ func FileMincore(fname string) (FileInfo, error) {
 
 	var sector = uint64(0)
 	if len(mappings) > 0 && RunByRoot {
-		sector = getSectorNumber(f.Fd())
+		sector, err = getSectorNumber(f.Fd())
+		if err != nil {
+			return FileInfo{}, err
+		}
 	}
 	sinfo := info.Sys().(*syscall.Stat_t)
 
@@ -114,12 +117,12 @@ func fileMincore(fd int, size int64) ([]PageRange, error) {
 
 var RunByRoot = os.Geteuid() == 0
 
-func getSectorNumber(fd uintptr) uint64 {
+func getSectorNumber(fd uintptr) (uint64, error) {
 	b := 0
 	const FIBMAP = 1
 	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), FIBMAP, uintptr(unsafe.Pointer(&b)))
 	if err != 0 {
-		fmt.Println("E:", err)
+		return 0, err
 	}
-	return uint64(b)
+	return uint64(b), nil
 }

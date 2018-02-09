@@ -2,10 +2,11 @@
     "Id" : "gedit",
     "TryFile": "/usr/bin/gedit",
     "Apply": {
-        "After" : [ "snapshot:DE" ]
+        "Before" : [ "inner:low-memory" ],
+        "After" : [ "inner:user" ]
     },
     "Capture": {
-        "After": [ "x11:Gedit" ],
+        "After": [ "inner:user", "x11:Gedit" ],
         "Method": [
             {
                 "Type": "uiapp",
