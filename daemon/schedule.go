@@ -23,12 +23,13 @@ func (d *Daemon) CaptureEvents() ([]string, []string, error) {
 
 func (d *Daemon) scheduleApplys() error {
 	doApply := func(name string) error {
+		Log("Begin DoApply %q\n", name)
 		err := d.history.DoApply(name)
 		if err != nil {
-			Log("DoApply %q failed: %v\n", name, err)
+			Log("End DoApply %q failed: %v\n", name, err)
 			return err
 		} else {
-			Log("DoApply %q\n", name)
+			Log("End DoApply %q\n", name)
 			return nil
 		}
 	}
@@ -64,12 +65,13 @@ func (d *Daemon) scheduleApplys() error {
 
 func (d *Daemon) scheduleCaptures() error {
 	doCapture := func(name string, methods []*core.CaptureMethod) error {
+		Log("Begin DoCapture %q\n", name)
 		err := d.history.DoCapture(name, methods)
 		if err != nil {
-			Log("DoCapture %q failed: %v\n", name, err)
+			Log("End DoCapture %q failed: %v\n", name, err)
 			return err
 		} else {
-			Log("DoCapture %q\n", name)
+			Log("End DoCapture %q\n", name)
 			return nil
 		}
 	}

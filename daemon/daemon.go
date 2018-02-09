@@ -62,10 +62,7 @@ func RunDaemon(etc string, cache, addr string, auto bool) error {
 	}
 	ctx := context.Background()
 	if auto {
-		go func() {
-			v := d.Schedule(ctx)
-			fmt.Println("HHHH:", v)
-		}()
+		go d.Schedule(ctx)
 	}
 	return d.RunRPC(ctx, addr)
 }
