@@ -66,10 +66,8 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	switch m.Type {
 	case _MethodMincores:
 		mps := calcRealTargets(_ReduceFilePath(m.Getenv, m.Mincores...), SystemMountPoints)
-		fmt.Println("MPS:", mps)
 		return _DoCaptureByMincores(mps, m.wrap(handle))
 	case _MethodPIDs:
-		fmt.Println("MPS:", m.Envs)
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
 		return _DoCaptureByFileList(m.FileList, true, m.wrap(handle))

@@ -4,43 +4,13 @@ import (
 	"../core"
 	"../events"
 	"context"
-	"fmt"
 )
 
-func (d *Daemon) CaptureEvents() ([]string, []string, error) {
-	var befores, afters []string
-	for _, cfg := range d.cfgs {
-		for _, after := range cfg.Capture.After {
-			if !events.IsSupport(after) {
-				return nil, nil, fmt.Errorf("Doesn't support event %q in %q snapshot configure.",
-					after, cfg.Id)
-			}
-			afters = append(afters, after)
-		}
-	}
-	return befores, afters, nil
-}
-
 func (d *Daemon) scheduleApplys() error {
-	doApply := func(name string) error {
-		Log("Begin DoApply %q\n", name)
-		err := d.history.DoApply(name)
-		if err != nil {
-			Log("End DoApply %q failed: %v\n", name, err)
-			return err
-		} else {
-			Log("End DoApply %q\n", name)
-			return nil
-		}
-	}
 	for _, cfg := range d.cfgs {
 		apply := cfg.Apply
 		name := cfg.Id
-
-		if !d.history.Has(name) {
-			Log("Ignore apply %q because hasn't any samples.\n", name)
-			continue
-		}
+		initUsage := apply.InitUsage
 
 		afters := apply.After
 		befores := apply.Before
@@ -52,9 +22,9 @@ func (d *Daemon) scheduleApplys() error {
 
 		var err error
 		if len(afters) == 0 {
-			err = doApply(name)
+			err = d.history.RequestApply(name, initUsage)
 		} else {
-			err = events.Connect(afters, func() { doApply(name) })
+			err = events.Connect(afters, func() { d.history.RequestApply(name, initUsage) })
 		}
 		if err != nil {
 			return err
@@ -64,9 +34,9 @@ func (d *Daemon) scheduleApplys() error {
 }
 
 func (d *Daemon) scheduleCaptures() error {
-	doCapture := func(name string, methods []*core.CaptureMethod) error {
+	doCapture := func(name string, force bool, methods []*core.CaptureMethod) error {
 		Log("Begin DoCapture %q\n", name)
-		err := d.history.DoCapture(name, methods)
+		err := d.history.DoCapture(name, force, methods)
 		if err != nil {
 			Log("End DoCapture %q failed: %v\n", name, err)
 			return err
@@ -80,11 +50,6 @@ func (d *Daemon) scheduleCaptures() error {
 		capture := cfg.Capture
 		name := cfg.Id
 
-		if d.history.Has(name) && !capture.AlwaysLoad {
-			Log("Ignore capture %q because already has one sample.\n", name)
-			continue
-		}
-
 		afters := capture.After
 		befores := capture.Before
 		methods := capture.Method
@@ -96,9 +61,9 @@ func (d *Daemon) scheduleCaptures() error {
 
 		var err error
 		if len(afters) == 0 {
-			err = doCapture(name, methods)
+			err = doCapture(name, capture.AlwaysLoad, methods)
 		} else {
-			err = events.Connect(afters, func() { doCapture(name, methods) })
+			err = events.Connect(afters, func() { doCapture(name, capture.AlwaysLoad, methods) })
 		}
 		if err != nil {
 			return err
