@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -120,6 +120,28 @@ func EnsureDir(d string) error {
 	return os.MkdirAll(d, 0755)
 }
 
+func LoadJSONFrom(fname string, o interface{}) error {
+	f, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	err = json.NewDecoder(f).Decode(o)
+	if err != nil {
+		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+	}
+	return nil
+}
+func LoadFrom(fname string, o interface{}) error {
+	f, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	err = gob.NewDecoder(f).Decode(o)
+	if err != nil {
+		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+	}
+	return nil
+}
 func StoreTo(fname string, o interface{}) error {
 	err := EnsureDir(path.Dir(fname))
 	if err != nil {
@@ -129,24 +151,5 @@ func StoreTo(fname string, o interface{}) error {
 	if err != nil {
 		return err
 	}
-	return storeTo(w, o)
-}
-
-func LoadFrom(fname string, o interface{}) error {
-	f, err := os.Open(fname)
-	if err != nil {
-		return err
-	}
-	err = loadFrom(f, o)
-	if err != nil {
-		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
-	}
-	return nil
-}
-
-func storeTo(w io.Writer, o interface{}) error {
-	return json.NewEncoder(w).Encode(o)
-}
-func loadFrom(r io.Reader, o interface{}) error {
-	return json.NewDecoder(r).Decode(o)
+	return gob.NewEncoder(w).Encode(o)
 }

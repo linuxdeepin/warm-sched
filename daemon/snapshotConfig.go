@@ -44,7 +44,7 @@ type CaptureConfig struct {
 
 func LoadConfig(fname string) (*SnapshotConfig, error) {
 	var cfg SnapshotConfig
-	err := core.LoadFrom(fname, &cfg)
+	err := core.LoadJSONFrom(fname, &cfg)
 	return &cfg, err
 }
 
