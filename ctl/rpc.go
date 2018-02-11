@@ -18,6 +18,12 @@ func (c RPCClient) Capture(id string) (*core.Snapshot, error) {
 	return &snap, err
 }
 
+func (c RPCClient) GetCaptured(id string) (*core.Snapshot, error) {
+	var snap core.Snapshot
+	err := c.core.Call(core.RPCName+".GetCaptured", id, &snap)
+	return &snap, err
+}
+
 func (c RPCClient) SwitchUserSession() error {
 	var noused bool
 	env := map[string]string{
@@ -60,6 +66,18 @@ func (c RPCClient) ListConfig() ([]string, error) {
 	var cfgs []string
 	err := c.core.Call(core.RPCName+".ListConfig", true, &cfgs)
 	return cfgs, err
+}
+
+func (c RPCClient) CompareWithCurrent(id string) (*core.SnapshotDiff, error) {
+	old, err := c.GetCaptured(id)
+	if err != nil {
+		return nil, err
+	}
+	current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
+	if err != nil {
+		return nil, err
+	}
+	return core.CompareSnapshot(old, current), nil
 }
 
 func NewRPCClient() (RPCClient, error) {

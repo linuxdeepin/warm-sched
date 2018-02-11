@@ -85,3 +85,7 @@ func (s RPCService) SnapStatus(_ string, out *[]SnapStatus) error {
 func (RPCService) Apply(_ core.Snapshot, out *bool) error {
 	panic("Not implement")
 }
+
+func (s RPCService) GetCaptured(id string, out *core.Snapshot) error {
+	return core.LoadFrom(s.daemon.history.path(id), out)
+}

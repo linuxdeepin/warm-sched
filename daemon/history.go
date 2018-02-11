@@ -77,12 +77,12 @@ func (h *History) DoCapture(id string, methods []*core.CaptureMethod) error {
 	if err != nil {
 		return fmt.Errorf("DoCapture %q failed: %v", id, err)
 	}
-	return StoreTo(h.path(id), snap)
+	return core.StoreTo(h.path(id), snap)
 }
 
 func (h *History) DoApply(id string) error {
 	var snap core.Snapshot
-	err := LoadFrom(h.path(id), &snap)
+	err := core.LoadFrom(h.path(id), &snap)
 	if err != nil {
 		return err
 	}

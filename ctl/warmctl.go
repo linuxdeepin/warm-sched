@@ -1,6 +1,7 @@
 package main
 
 import (
+	"../core"
 	"flag"
 	"fmt"
 	"os"
@@ -8,46 +9,68 @@ import (
 
 type AppFlags struct {
 	capture      bool
-	apply        bool
 	schedule     bool
 	switchToUser bool
+
+	diff bool
 }
 
 func InitFlags() AppFlags {
 	var af AppFlags
 
 	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
-	flag.BoolVar(&af.apply, "a", false, "apply the snapshot")
 	flag.BoolVar(&af.schedule, "s", false, "schedule handle snapshot by configures")
 	flag.BoolVar(&af.switchToUser, "u", false, "let warm-daemon switch on this session")
+	flag.BoolVar(&af.diff, "d", false, "show difference current pagecache with captured $id")
 
 	flag.Parse()
 	return af
 }
 
-func doActions(c RPCClient, af AppFlags, args []string) error {
-	cfgs, err := c.ListConfig()
+func doActions(af AppFlags, args []string) error {
+	c, err := NewRPCClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("Cant Init RPC:%v", err)
 	}
 
 	switch {
 	case af.capture:
-		if len(args) == 0 {
-			return fmt.Errorf("Please specify configure name")
-		}
-		snap, err := c.Capture(args[0])
+		current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
 		if err != nil {
 			return err
 		}
-		DumpSnapshot(snap)
-	case af.apply:
-		panic("not impement apply operatin")
+		switch len(args) {
+		case 0:
+			err = core.DumpSnapshot(current)
+		case 1:
+			err = core.StoreTo(args[0], current)
+		default:
+			err = fmt.Errorf("Too many arguments")
+		}
 	case af.schedule:
 		err = c.Schedule()
 	case af.switchToUser:
 		err = c.SwitchUserSession()
+	case af.diff:
+		if len(args) < 2 {
+			return fmt.Errorf("Please specify tow snapshot file")
+		}
+		var s1, s2 core.Snapshot
+		err = core.LoadFrom(args[0], &s1)
+		if err != nil {
+			return err
+		}
+		err = core.LoadFrom(args[1], &s2)
+		if err != nil {
+			return err
+		}
+		diffs := core.CompareSnapshot(&s1, &s2)
+		fmt.Println(diffs)
 	default:
+		cfgs, err := c.ListConfig()
+		if err != nil {
+			return err
+		}
 		for _, cfg := range cfgs {
 			fmt.Println(cfg)
 		}
@@ -56,14 +79,8 @@ func doActions(c RPCClient, af AppFlags, args []string) error {
 }
 
 func main() {
-	c, err := NewRPCClient()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Cant Init RPC:", err)
-		return
-	}
-
 	af := InitFlags()
-	err = doActions(c, af, flag.Args())
+	err := doActions(af, flag.Args())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "E:", err)
 	}

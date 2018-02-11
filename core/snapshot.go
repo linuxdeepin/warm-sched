@@ -23,7 +23,7 @@ func (s *Snapshot) Add(i FileInfo) error {
 	return nil
 }
 
-func (s *Snapshot) String() string {
+func (s Snapshot) String() string {
 	ramSize, fileSize := s.sizes()
 	if fileSize == 0 {
 		fileSize = 1
@@ -33,6 +33,82 @@ func (s *Snapshot) String() string {
 		HumanSize(ramSize),
 		ramSize*100/fileSize,
 	)
+}
+
+func DumpSnapshot(snap *Snapshot) error {
+	var totalRAMSize, totalFileSize, totalUsedFileSize int
+	var totalFile, usedFile int
+
+	for _, info := range snap.Infos {
+		totalFile++
+		totalFileSize += int(info.FileSize)
+		if len(info.Mapping) > 0 {
+			usedFile++
+			totalUsedFileSize += int(info.FileSize)
+			totalRAMSize += info.RAMSize()
+			fmt.Println(info)
+		}
+	}
+
+	if totalUsedFileSize > 0 {
+		fmt.Printf("%s\t%d%%\t%s",
+			HumanSize(totalRAMSize),
+			totalRAMSize*100/totalUsedFileSize,
+			fmt.Sprintf("[FOR %q FILES USED/TOTAL: %d/%d]\n",
+				"/",
+				usedFile, totalFile,
+			),
+		)
+	}
+	return nil
+}
+
+type SnapshotDiff struct {
+	Added   []FileInfo
+	Deleted []FileInfo
+}
+
+func (d SnapshotDiff) String() string {
+	s := fmt.Sprintf("%d Added, %d Deleted\n", len(d.Added), len(d.Deleted))
+
+	if len(d.Added) > 0 {
+		s += fmt.Sprintf("============ %d Added ============\n", len(d.Added))
+		for _, v := range d.Added {
+			s += fmt.Sprintf("+\t%s\n", v)
+		}
+		s += fmt.Sprintf("\t%s\n", Snapshot{d.Added})
+
+	}
+	if len(d.Deleted) > 0 {
+		s += fmt.Sprintf("============ %d Deleted ============\n", len(d.Deleted))
+		for _, v := range d.Deleted {
+			s += fmt.Sprintf("-\t%s\n", v)
+		}
+		s += fmt.Sprintf("\t%s\n", Snapshot{d.Deleted})
+	}
+
+	return s
+}
+
+func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
+	cache := make(map[string]FileInfo)
+	for _, i := range a.Infos {
+		cache[i.Name] = i
+	}
+
+	var added []FileInfo
+	for _, i := range b.Infos {
+		if _, ok := cache[i.Name]; !ok {
+			added = append(added, i)
+		} else {
+			delete(cache, i.Name)
+		}
+	}
+	var deleted []FileInfo
+	for _, v := range cache {
+		deleted = append(deleted, v)
+	}
+	return &SnapshotDiff{added, deleted}
 }
 
 func (s *Snapshot) sizes() (int, int) {
