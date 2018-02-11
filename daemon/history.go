@@ -34,31 +34,6 @@ type _ApplyItem struct {
 	Priority int
 }
 
-// implement snapshot apply events
-type snapshotSource struct {
-	lock   sync.Mutex
-	loaded map[string]bool
-}
-
-func (s *snapshotSource) markLoaded(id string) {
-	s.lock.Lock()
-	s.loaded[id] = true
-	s.lock.Unlock()
-}
-
-func (*snapshotSource) Scope() string { return "snapshot" }
-func (s *snapshotSource) Check(ids []string) []string {
-	var ret []string
-	s.lock.Lock()
-	for _, id := range ids {
-		if s.loaded[id] {
-			ret = append(ret, id)
-		}
-	}
-	s.lock.Unlock()
-	return ret
-}
-
 type History struct {
 	status   map[string]SnapStatus
 	cacheDir string
