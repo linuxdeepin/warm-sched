@@ -3,7 +3,6 @@ package main
 import (
 	"../core"
 	"context"
-	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -50,20 +49,6 @@ func (s RPCService) SwitchUserSession(env map[string]string, out *bool) error {
 	return s.daemon.SwitchUserSession(env)
 }
 
-func (s RPCService) Capture(id string, out *core.Snapshot) error {
-	for _, cfg := range s.daemon.cfgs {
-		if cfg.Id == id {
-			snap, err := core.CaptureSnapshot(cfg.Capture.Method...)
-			if err != nil {
-				return err
-			}
-			*out = *snap
-			return nil
-		}
-	}
-	return fmt.Errorf("Not Found Configure of %q", id)
-}
-
 func (s RPCService) Schedule(_ string, out *bool) error {
 	err := s.daemon.Schedule(context.TODO())
 	if err != nil {
@@ -80,12 +65,4 @@ func (s RPCService) SnapStatus(_ string, out *[]SnapStatus) error {
 	v := s.daemon.history.SnapStatus()
 	*out = v
 	return nil
-}
-
-func (RPCService) Apply(_ core.Snapshot, out *bool) error {
-	panic("Not implement")
-}
-
-func (s RPCService) GetCaptured(id string, out *core.Snapshot) error {
-	return core.LoadFrom(s.daemon.history.path(id), out)
 }

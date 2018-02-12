@@ -8,44 +8,37 @@ import (
 	"time"
 )
 
-type RPCClient struct {
-	core *rpc.Client
-}
+func SwitchUserSession() error {
+	c, err := rpc.Dial("unix", core.RPCSocket)
+	if err != nil {
+		return err
+	}
 
-func (c RPCClient) Capture(id string) (*core.Snapshot, error) {
-	var snap core.Snapshot
-	err := c.core.Call(core.RPCName+".Capture", id, &snap)
-	return &snap, err
-}
-
-func (c RPCClient) GetCaptured(id string) (*core.Snapshot, error) {
-	var snap core.Snapshot
-	err := c.core.Call(core.RPCName+".GetCaptured", id, &snap)
-	return &snap, err
-}
-
-func (c RPCClient) SwitchUserSession() error {
 	var noused bool
 	env := map[string]string{
 		"HOME":       os.Getenv("HOME"),
 		"DISPLAY":    os.Getenv("DISPLAY"),
 		"XAUTHORITY": os.Getenv("XAUTHORITY"),
 	}
-	err := c.core.Call(core.RPCName+".SwitchUserSession", env, &noused)
-	return err
+	return c.Call(core.RPCName+".SwitchUserSession", env, &noused)
 }
 
-func (c RPCClient) Schedule() error {
+func Schedule() error {
+	c, err := rpc.Dial("unix", core.RPCSocket)
+	if err != nil {
+		return err
+	}
+
 	var serr chan error
 	go func() {
-		serr <- c.core.Call(core.RPCName+".Schedule", "", nil)
+		serr <- c.Call(core.RPCName+".Schedule", "", nil)
 	}()
 
 	for {
 		select {
 		case <-time.After(time.Second):
 			var list map[string][]string
-			err := c.core.Call(core.RPCName+".SchedulePendings", "", &list)
+			err := c.Call(core.RPCName+".SchedulePendings", "", &list)
 			if err != nil {
 				return err
 			}
@@ -62,26 +55,12 @@ func (c RPCClient) Schedule() error {
 	}
 }
 
-func (c RPCClient) ListConfig() ([]string, error) {
+func ListConfig() ([]string, error) {
+	c, err := rpc.Dial("unix", core.RPCSocket)
+	if err != nil {
+		return nil, err
+	}
 	var cfgs []string
-	err := c.core.Call(core.RPCName+".ListConfig", true, &cfgs)
+	err = c.Call(core.RPCName+".ListConfig", true, &cfgs)
 	return cfgs, err
-}
-
-func (c RPCClient) CompareWithCurrent(id string) (*core.SnapshotDiff, error) {
-	old, err := c.GetCaptured(id)
-	if err != nil {
-		return nil, err
-	}
-	current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
-	if err != nil {
-		return nil, err
-	}
-	return core.CompareSnapshot(old, current), nil
-}
-
-func NewRPCClient() (RPCClient, error) {
-	var err error
-	client, err := rpc.Dial("unix", core.RPCSocket)
-	return RPCClient{core: client}, err
 }

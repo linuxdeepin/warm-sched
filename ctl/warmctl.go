@@ -47,11 +47,6 @@ func CompareSnapshot(f1 string, f2 string) (*core.SnapshotDiff, error) {
 }
 
 func doActions(af AppFlags, args []string) error {
-	c, err := NewRPCClient()
-	if err != nil {
-		return fmt.Errorf("Cant Init RPC:%v", err)
-	}
-
 	switch {
 	case af.capture:
 		current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
@@ -66,17 +61,18 @@ func doActions(af AppFlags, args []string) error {
 		default:
 			err = fmt.Errorf("Too many arguments")
 		}
+		return err
 	case af.dump:
 		var s1 core.Snapshot
-		err = core.LoadFrom(args[0], &s1)
+		err := core.LoadFrom(args[0], &s1)
 		if err != nil {
 			return err
 		}
-		err = core.DumpSnapshot(&s1)
+		return core.DumpSnapshot(&s1)
 	case af.schedule:
-		err = c.Schedule()
+		return Schedule()
 	case af.switchToUser:
-		err = c.SwitchUserSession()
+		return SwitchUserSession()
 	case af.diffAdded:
 		if len(args) < 3 {
 			return fmt.Errorf("Please specify three snapshot file")
@@ -85,7 +81,7 @@ func doActions(af AppFlags, args []string) error {
 		if err != nil {
 			return err
 		}
-		err = core.StoreTo(args[2], core.Snapshot{Infos: diffs.Added})
+		return core.StoreTo(args[2], core.Snapshot{Infos: diffs.Added})
 	case af.diff:
 		if len(args) < 2 {
 			return fmt.Errorf("Please specify tow snapshot file")
@@ -96,7 +92,7 @@ func doActions(af AppFlags, args []string) error {
 		}
 		fmt.Println(diffs)
 	default:
-		cfgs, err := c.ListConfig()
+		cfgs, err := ListConfig()
 		if err != nil {
 			return err
 		}
@@ -104,7 +100,7 @@ func doActions(af AppFlags, args []string) error {
 			fmt.Println(cfg)
 		}
 	}
-	return err
+	return nil
 }
 
 func main() {
