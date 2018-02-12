@@ -70,7 +70,7 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	case _MethodPIDs:
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
-		return _DoCaptureByFileList(m.FileList, true, m.wrap(handle))
+		return _DoCaptureByFileList(_ReduceFilePath(m.Getenv, m.FileList...), true, m.wrap(handle))
 	case _MethodUIApp:
 		_m, err := NewCaptureMethodUIApp(m.WMClass)
 		if err != nil {
@@ -161,14 +161,17 @@ func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 }
 
 func _DoCaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc) error {
-	for _, fname := range list {
-		finfo, err := FileMincore(fname)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ByFileList FileMincoe %q : %v\n", fname, err)
-			continue
-		}
-		if err := handle(finfo); err != nil {
-			return err
+	mps := calcRealTargets(list, SystemMountPoints)
+	ch := make(chan FileInfo)
+	go generateFileInfoByKernel(ch, mps)
+	for info := range ch {
+		for _, i := range list {
+			if !strings.HasPrefix(info.Name, i) {
+				continue
+			}
+			if err := handle(info); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
