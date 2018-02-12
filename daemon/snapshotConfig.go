@@ -39,7 +39,7 @@ type CaptureConfig struct {
 
 	AlwaysLoad bool
 
-	WaitSeond int
+	WaitSecond int
 
 	Method []*core.CaptureMethod
 }

@@ -91,19 +91,28 @@ func (h *History) Usage(id string) int {
 	return v
 }
 
-func (h *History) DoCapture(id string, ws int, force bool, methods []*core.CaptureMethod) error {
+func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
 	h.addUsage(id)
-	if h.has(id) && !force {
+	if h.has(id) && !c.AlwaysLoad {
 		Log("Ignore capture %q because already has one sample.\n", id)
 		return nil
 	}
 
-	if ws > 0 {
-		Log("Wait %d Second", ws)
-		time.Sleep(time.Duration(ws) * time.Second)
+	Log("Begin DoCapture %q\n", id)
+	defer func() {
+		if err != nil {
+			Log("End DoCapture %q failed: %v\n", id, err)
+		} else {
+			Log("End DoCapture %q\n", id)
+		}
+	}()
+
+	if c.WaitSecond > 0 {
+		Log("Wait %d Second.\n", c.WaitSecond)
+		time.Sleep(time.Duration(c.WaitSecond) * time.Second)
 	}
 
-	snap, err := core.CaptureSnapshot(methods...)
+	snap, err := core.CaptureSnapshot(c.Method...)
 	if err != nil {
 		return fmt.Errorf("DoCapture %q failed: %v", id, err)
 	}

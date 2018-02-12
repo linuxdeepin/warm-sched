@@ -1,7 +1,6 @@
 package main
 
 import (
-	"../core"
 	"../events"
 	"context"
 )
@@ -34,36 +33,24 @@ func (d *Daemon) scheduleApplys() error {
 }
 
 func (d *Daemon) scheduleCaptures() error {
-	doCapture := func(name string, ws int, force bool, methods []*core.CaptureMethod) error {
-		Log("Begin DoCapture %q\n", name)
-		err := d.history.DoCapture(name, ws, force, methods)
-		if err != nil {
-			Log("End DoCapture %q failed: %v\n", name, err)
-			return err
-		} else {
-			Log("End DoCapture %q\n", name)
-			return nil
-		}
-	}
-
 	for _, cfg := range d.cfgs {
 		capture := cfg.Capture
-		name := cfg.Id
-
+		id := cfg.Id
 		afters := capture.After
 		befores := capture.Before
-		methods := capture.Method
 
 		if len(befores) != 0 && len(events.Check(befores)) > 0 {
-			Log("Ignore capture %q because some of %v is already done.\n", name, befores)
+			Log("Ignore capture %q because some of %v is already done.\n", id, befores)
 			continue
 		}
 
 		var err error
 		if len(afters) == 0 {
-			err = doCapture(name, capture.WaitSeond, capture.AlwaysLoad, methods)
+			err = d.history.DoCapture(id, capture)
 		} else {
-			err = events.Connect(afters, func() { doCapture(name, capture.WaitSeond, capture.AlwaysLoad, methods) })
+			err = events.Connect(afters, func() {
+				d.history.DoCapture(id, capture)
+			})
 		}
 		if err != nil {
 			return err
