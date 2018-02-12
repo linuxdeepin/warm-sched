@@ -34,9 +34,9 @@ func (d *Daemon) scheduleApplys() error {
 }
 
 func (d *Daemon) scheduleCaptures() error {
-	doCapture := func(name string, force bool, methods []*core.CaptureMethod) error {
+	doCapture := func(name string, ws int, force bool, methods []*core.CaptureMethod) error {
 		Log("Begin DoCapture %q\n", name)
-		err := d.history.DoCapture(name, force, methods)
+		err := d.history.DoCapture(name, ws, force, methods)
 		if err != nil {
 			Log("End DoCapture %q failed: %v\n", name, err)
 			return err
@@ -61,9 +61,9 @@ func (d *Daemon) scheduleCaptures() error {
 
 		var err error
 		if len(afters) == 0 {
-			err = doCapture(name, capture.AlwaysLoad, methods)
+			err = doCapture(name, capture.WaitSeond, capture.AlwaysLoad, methods)
 		} else {
-			err = events.Connect(afters, func() { doCapture(name, capture.AlwaysLoad, methods) })
+			err = events.Connect(afters, func() { doCapture(name, capture.WaitSeond, capture.AlwaysLoad, methods) })
 		}
 		if err != nil {
 			return err

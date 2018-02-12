@@ -6,7 +6,7 @@
     },
     "Capture": {
         "After": [ "inner:user", "x11:Google-chrome" ],
-        "WaitSecond": 3,
+        "WaitSecond": 1,
 
         "Method": [
             {
