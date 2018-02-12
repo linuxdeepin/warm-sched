@@ -3,10 +3,14 @@ package core
 import (
 	"fmt"
 	"sort"
+	"sync"
 )
 
 type Snapshot struct {
 	Infos FileInfos
+
+	cacheLock sync.Mutex
+	cache     map[string]bool
 }
 
 func createSnapshot() *Snapshot {
@@ -19,11 +23,25 @@ func (s *Snapshot) Sort() {
 }
 
 func (s *Snapshot) Add(i FileInfo) error {
+	s.cacheLock.Lock()
+	if s.cache == nil {
+		s.cache = make(map[string]bool)
+		for _, info := range s.Infos {
+			s.cache[info.Name] = true
+		}
+	}
+	if s.cache[i.Name] {
+		s.cacheLock.Unlock()
+		return nil
+	}
+	s.cache[i.Name] = true
+	s.cacheLock.Unlock()
+
 	s.Infos = append(s.Infos, i)
 	return nil
 }
 
-func (s Snapshot) String() string {
+func (s *Snapshot) String() string {
 	ramSize, fileSize := s.sizes()
 	if fileSize == 0 {
 		fileSize = 1
@@ -76,7 +94,7 @@ func (d SnapshotDiff) String() string {
 		for _, v := range d.Added {
 			s += fmt.Sprintf("+\t%s\n", v)
 		}
-		s += fmt.Sprintf("\t%s\n", Snapshot{d.Added})
+		s += fmt.Sprintf("\t%s\n", &Snapshot{Infos: d.Added})
 
 	}
 	if len(d.Deleted) > 0 {
@@ -84,7 +102,7 @@ func (d SnapshotDiff) String() string {
 		for _, v := range d.Deleted {
 			s += fmt.Sprintf("-\t%s\n", v)
 		}
-		s += fmt.Sprintf("\t%s\n", Snapshot{d.Deleted})
+		s += fmt.Sprintf("\t%s\n", &Snapshot{Infos: d.Deleted})
 	}
 
 	return s

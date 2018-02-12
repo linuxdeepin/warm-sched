@@ -85,7 +85,7 @@ func doActions(af AppFlags, args []string) error {
 		if err != nil {
 			return err
 		}
-		err = core.StoreTo(args[2], core.Snapshot{diffs.Added})
+		err = core.StoreTo(args[2], core.Snapshot{Infos: diffs.Added})
 	case af.diff:
 		if len(args) < 2 {
 			return fmt.Errorf("Please specify tow snapshot file")
