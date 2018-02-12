@@ -150,7 +150,7 @@ func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 	for _, fname := range fs {
 		finfo, err := FileMincore(fname)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "FileMincoe %q : %v\n", fname, err)
+			fmt.Fprintf(os.Stderr, "ByPIDs FileMincoe %q : %v\n", fname, err)
 			continue
 		}
 		if err := handle(finfo); err != nil {
@@ -164,6 +164,7 @@ func _DoCaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc) erro
 	for _, fname := range list {
 		finfo, err := FileMincore(fname)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "ByFileList FileMincoe %q : %v\n", fname, err)
 			continue
 		}
 		if err := handle(finfo); err != nil {
