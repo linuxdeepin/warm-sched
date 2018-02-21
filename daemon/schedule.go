@@ -80,14 +80,3 @@ func (d *Daemon) Schedule(ctx context.Context) error {
 	// 3. wait all events
 	return events.Run(ctx)
 }
-
-func EventWaits() map[string][]string {
-	var ret = make(map[string][]string)
-	for _, s := range events.Scopes() {
-		p := events.Pendings(s)
-		if len(p) != 0 {
-			ret[s] = p
-		}
-	}
-	return ret
-}

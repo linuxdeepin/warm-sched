@@ -2,6 +2,7 @@ package main
 
 import (
 	"../core"
+	"../events"
 	"context"
 	"net"
 	"net/rpc"
@@ -18,7 +19,9 @@ func RunRPCService(ctx context.Context, d *Daemon, netType string, addr string) 
 		return err
 	}
 	s := RPCService{d}
-	err = rpc.RegisterName(core.RPCName, s)
+
+	rc := rpc.NewServer()
+	err = rc.RegisterName(core.RPCName, s)
 	if err != nil {
 		return err
 	}
@@ -32,7 +35,7 @@ func RunRPCService(ctx context.Context, d *Daemon, netType string, addr string) 
 			}
 		}
 	}()
-	rpc.Accept(l)
+	rc.Accept(l)
 	return nil
 }
 
@@ -50,14 +53,21 @@ func (s RPCService) SwitchUserSession(env map[string]string, out *bool) error {
 }
 
 func (s RPCService) Schedule(_ string, out *bool) error {
-	err := s.daemon.Schedule(context.TODO())
+	err := s.daemon.Schedule(s.daemon.ctx)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (s RPCService) SchedulePendings(_ string, out *map[string][]string) error {
-	*out = EventWaits()
+	var ret = make(map[string][]string)
+	for _, s := range events.Scopes() {
+		p := events.Pendings(s)
+		if len(p) != 0 {
+			ret[s] = p
+		}
+	}
+	*out = ret
 	return nil
 }
 

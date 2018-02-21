@@ -18,7 +18,6 @@ func (s innerSource) Check(ids []string) []string {
 			if s.IsInUser {
 				ret = append(ret, id)
 			}
-		case "low-memory":
 		}
 	}
 	return ret
