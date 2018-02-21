@@ -11,31 +11,12 @@ import (
 	"time"
 )
 
-type SnapStatus struct {
-	Id            string
-	Description   string
-	Captured      bool
-	Summary       string
-	LoadCount     int //实际被加载次数
-	OccurCount    int //满足被加载条件次数
-	ConfigurePath string
-}
-
-func (h *History) SnapStatus() []SnapStatus {
-	var ret []SnapStatus
-	for _, v := range h.status {
-		ret = append(ret, v)
-	}
-	return ret
-}
-
 type _ApplyItem struct {
 	Id       string
 	Priority int
 }
 
 type History struct {
-	status   map[string]SnapStatus
 	cacheDir string
 	ss       *snapshotSource
 
@@ -54,7 +35,6 @@ func NewHistory(cache string) *History {
 
 	h := &History{
 		cacheDir: cache,
-		status:   make(map[string]SnapStatus),
 		ss:       ss,
 		usage:    make(map[string]int),
 	}
