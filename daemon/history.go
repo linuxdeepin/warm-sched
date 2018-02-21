@@ -27,7 +27,7 @@ type History struct {
 	applyQueue []_ApplyItem
 }
 
-func NewHistory(cache string) *History {
+func NewHistory(ctx context.Context, cache string) *History {
 	ss := &snapshotSource{
 		loaded: make(map[string]bool),
 	}
@@ -40,7 +40,7 @@ func NewHistory(cache string) *History {
 	}
 	h.loadUsage()
 
-	go h.poll(context.TODO())
+	go h.poll(ctx)
 	return h
 }
 

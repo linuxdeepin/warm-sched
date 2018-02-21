@@ -52,30 +52,42 @@ func (d *Daemon) RunRPC(ctx context.Context, socket string) error {
 	return RunRPCService(ctx, d, "unix", socket)
 }
 
-func (d *Daemon) quitWhenLowMemory(threshold uint64) {
+func quitWhenLowMemory(ctx context.Context, cancel func(), threshold uint64) {
 	for {
 		select {
-		case <-d.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-time.After(time.Second * 2):
 			if MemAvailable() < threshold {
 				Log("Quit because available memory is lower than %s.\n", core.HumanSize(int(threshold)))
-				d.cancel()
+				cancel()
+				return
 			}
 		}
 	}
 }
+func quitWhenTimeout(ctx context.Context, cancel func(), t time.Duration) {
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(t):
+		Log("Quit because timeout %v.\n", t)
+		cancel()
+		return
+	}
+}
 
-func RunDaemon(etc string, cache, addr string, auto bool, lowMemory uint64) error {
+func RunDaemon(etc string, cache, addr string, auto bool, lowMemory uint64, timeout time.Duration) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d := &Daemon{
-		history:     NewHistory(cache),
+		history:     NewHistory(ctx, cache),
 		innerSource: &innerSource{},
 		ctx:         ctx,
 		cancel:      cancel,
 	}
 
-	go d.quitWhenLowMemory(lowMemory)
+	go quitWhenLowMemory(ctx, cancel, lowMemory)
+	go quitWhenTimeout(ctx, cancel, timeout)
 
 	events.Register(d.innerSource)
 
@@ -100,12 +112,8 @@ func main() {
 
 	flag.Parse()
 
-	time.AfterFunc(time.Duration(*timeout)*time.Second, func() {
-		Log("Timeout, so normal quitting daemon.\n")
-		os.Exit(0)
-	})
-
-	err := RunDaemon(*cfgDir, *cacheDir, *socket, *auto, uint64(*lowMemory*1024))
+	t := time.Duration(*timeout) * time.Second
+	err := RunDaemon(*cfgDir, *cacheDir, *socket, *auto, uint64(*lowMemory*1024), t)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E main:%v\n", err)
 		return
