@@ -14,9 +14,9 @@ clean:
 	rm -rf bin/warmctl bin/warm-daemon
 
 test:
-	cd daemon && go test
-	cd core && go test
-	cd events && go test
+	cd daemon && go test -race
+	cd core && go test -race
+	cd events && go test -race
 
 run-daemon: build-daemon
 	./bin/warm-daemon -auto=false
