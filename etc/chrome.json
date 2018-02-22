@@ -2,7 +2,7 @@
     "Id" : "google-chrome",
     "TryFile": "/opt/google/chrome/chrome",
     "Apply": {
-        "After" : [ "inner:user", "snapshot:DE" ]
+        "After" : [ "snapshot:DE" ]
     },
     "Capture": {
         "After": [ "inner:user", "x11:Google-chrome" ],

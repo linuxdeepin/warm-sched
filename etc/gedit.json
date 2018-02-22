@@ -2,8 +2,7 @@
     "Id" : "gedit",
     "TryFile": "/usr/bin/gedit",
     "Apply": {
-        "Before" : [ "inner:low-memory" ],
-        "After" : [ "inner:user", "snapshot:DE" ]
+        "After" : [ "snapshot:DE" ]
     },
     "Capture": {
         "After": [ "inner:user", "x11:Gedit" ],

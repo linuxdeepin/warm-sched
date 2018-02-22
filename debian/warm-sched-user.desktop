@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=warm-sched-user-session
-Exec=sh -c "sleep 10; /bin/warmctl -u"
+Exec=/bin/warmctl -u
 TryExec=/bin/warmctl
 NoDisplay=true
 

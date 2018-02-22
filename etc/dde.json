@@ -7,6 +7,7 @@
         "After": [ "snapshot:BASIC" ]
     },
     "Capture": {
+        "WaitSecond": 10,
         "After": [ "inner:user" ],
         "Before": [ "snapshot:DE"],
         "Method": [

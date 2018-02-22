@@ -137,7 +137,7 @@ func main() {
 	cacheDir := flag.String("cache", "./cache", "the directory of caching")
 	socket := flag.String("socket", core.RPCSocket, "the unix socket address.")
 	auto := flag.Bool("auto", true, "automatically schedule")
-	lowMemory := flag.Int("lowMemory", 1024*1024, "The threshold of low memory in KB, when available memory is lower than the threshold, daemon will quit")
+	lowMemory := flag.Int("lowMemory", 500*1024, "The threshold of low memory in KB, when available memory is lower than the threshold, daemon will quit")
 
 	timeout := flag.Int("timeout", 60*30, "Maximum seconds to wait")
 

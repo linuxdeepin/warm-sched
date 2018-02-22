@@ -2,7 +2,7 @@
     "Id" : "firefox",
     "TryFile": "/usr/bin/firefox",
     "Apply": {
-        "After" : [ "inner:user", "snapshot:DE" ]
+        "After" : [ "snapshot:DE" ]
     },
     "Capture": {
         "After": [ "inner:user", "x11:Firefox" ],
@@ -11,6 +11,13 @@
             {
                 "Type": "uiapp",
                 "WMClass": "Firefox"
+            },
+            {
+                "Type": "filelist",
+                "FileList": [
+                    "$HOME/.cache/mozilla/firefox",
+                    "$HOME/.mozilla/firefox"
+                ]
             }
         ]
     }
