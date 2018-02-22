@@ -25,4 +25,5 @@ t:
 	debuild -uc -us
 	scp ../warm-sched_0.2.0_amd64.deb deepin@pc:~
 	ssh -t deepin@pc sudo dpkg -i /home/deepin/warm-sched_0.2.0_amd64.deb
+	dpkg-buildpackage -Tclean
 	ssh -t deepin@pc sudo reboot
