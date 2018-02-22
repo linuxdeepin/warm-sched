@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"time"
 )
 
 type AppFlags struct {
@@ -12,6 +14,7 @@ type AppFlags struct {
 	schedule     bool
 	switchToUser bool
 	apply        bool
+	test         bool
 
 	dump bool
 
@@ -21,7 +24,7 @@ type AppFlags struct {
 
 func InitFlags() AppFlags {
 	var af AppFlags
-
+	flag.BoolVar(&af.test, "t", false, "build a test draft snapshot")
 	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
 	flag.BoolVar(&af.apply, "a", false, "apply a snapshot")
 	flag.BoolVar(&af.schedule, "s", false, "schedule handle snapshot by configures")
@@ -48,9 +51,48 @@ func CompareSnapshot(f1 string, f2 string) (*core.SnapshotDiff, error) {
 	return diffs, nil
 }
 
+var defaultMincores = []string{"/", "/home"}
+
+func Draft(name string) error {
+	c1, err := core.CaptureSnapshot(core.NewCaptureMethodMincores(defaultMincores...))
+	if err != nil {
+		return err
+	}
+	fmt.Println("Please run manually the test target application.")
+	fmt.Println("Press Ctrl+C when the target has been launched.")
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	select {
+	case <-c:
+	case <-time.After(time.Second * 600):
+		return fmt.Errorf("Timeout")
+	}
+	c2, err := core.CaptureSnapshot(core.NewCaptureMethodMincores(defaultMincores...))
+	if err != nil {
+		return err
+	}
+
+	diffs := core.CompareSnapshot(c1, c2)
+	err = core.StoreTo(name+".snap", core.Snapshot{Infos: diffs.Added})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("See the draft by run \"warmctl -dump %s.snap\".\n", name)
+	return nil
+}
+
 func doActions(af AppFlags, args []string) error {
 	switch {
+	case af.test:
+		if len(args) < 1 {
+			return fmt.Errorf("Please specify the draft name")
+		}
+		return Draft(args[0])
 	case af.apply:
+		if len(args) < 1 {
+			return fmt.Errorf("Please specify the snapshot file path")
+		}
 		var s1 core.Snapshot
 		err := core.LoadFrom(args[0], &s1)
 		if err != nil {
@@ -58,7 +100,7 @@ func doActions(af AppFlags, args []string) error {
 		}
 		return core.ApplySnapshot(&s1, true)
 	case af.capture:
-		current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
+		current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores(defaultMincores...))
 		if err != nil {
 			return err
 		}

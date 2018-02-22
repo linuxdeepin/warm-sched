@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"testing"
 	"time"
 )
@@ -32,6 +33,10 @@ func (s timeoutScope) Check(points []string) []string {
 }
 
 func TestSystemd(t *testing.T) {
+	if exec.Command("systemctl", "is-system-running").Run() != nil {
+		t.Skip("Currently not in Systemd environment")
+		return
+	}
 	err := Connect([]string{"systemd:local-fs.target"}, nil)
 	if err != nil {
 		t.Error(err)
