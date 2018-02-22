@@ -13,11 +13,6 @@ type Snapshot struct {
 	cache     map[string]bool
 }
 
-func createSnapshot() *Snapshot {
-	snap := &Snapshot{}
-	return snap
-}
-
 func (s *Snapshot) Sort() {
 	sort.Slice(s.Infos, s.Infos.less)
 }
@@ -42,7 +37,7 @@ func (s *Snapshot) Add(i FileInfo) error {
 }
 
 func (s *Snapshot) String() string {
-	ramSize, fileSize := s.Sizes()
+	ramSize, fileSize := s.sizes()
 	if fileSize == 0 {
 		fileSize = 1
 	}
@@ -51,6 +46,12 @@ func (s *Snapshot) String() string {
 		HumanSize(ramSize),
 		ramSize*100/fileSize,
 	)
+}
+
+func (snap *Snapshot) AnalyzeSnapshotLoad(current *Snapshot) (int, float32) {
+	cs, _ := snap.sizes()
+	p := CompareSnapshot(current, snap).Loaded
+	return cs, p
 }
 
 func DumpSnapshot(snap *Snapshot) error {
@@ -111,7 +112,7 @@ func (d SnapshotDiff) String() string {
 
 func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 	cache := make(map[string]FileInfo)
-	union := createSnapshot()
+	union := &Snapshot{}
 	for _, i := range a.Infos {
 		cache[i.Name] = i
 	}
@@ -131,8 +132,8 @@ func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 	}
 
 	var loadedPercentage float32
-	if totalSize, _ := b.Sizes(); totalSize != 0 {
-		loadedSize, _ := union.Sizes()
+	if totalSize, _ := b.sizes(); totalSize != 0 {
+		loadedSize, _ := union.sizes()
 		loadedPercentage = float32(loadedSize) / float32(totalSize)
 	}
 
@@ -143,7 +144,7 @@ func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 	}
 }
 
-func (s *Snapshot) Sizes() (int, int) {
+func (s *Snapshot) sizes() (int, int) {
 	var ret1, ret2 int
 	for _, r := range s.Infos {
 		ret1 += r.RAMSize()
@@ -177,7 +178,7 @@ func CaptureSnapshot(ms ...*CaptureMethod) (*Snapshot, error) {
 	if len(ms) == 0 {
 		return nil, fmt.Errorf("It Must specify at least one Capture methods.")
 	}
-	snap := createSnapshot()
+	snap := &Snapshot{}
 	for _, m := range ms {
 		if err := DoCapture(m, snap.Add); err != nil {
 			return nil, err

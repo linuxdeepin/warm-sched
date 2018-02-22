@@ -47,13 +47,20 @@ func NewHistory(ctx context.Context, cache string) *History {
 	return h
 }
 
-func (h *History) Status(id string, current *core.Snapshot) HistoryStatus {
+func (h *History) Status(id string, current *core.Snapshot) (HistoryStatus, *core.Snapshot) {
+	snap := h.FindSnapshot(id)
+	if snap == nil {
+		return HistoryStatus{}, nil
+	}
+
+	cs, p := snap.AnalyzeSnapshotLoad(current)
+
 	return HistoryStatus{
 		HitCount:         h.getUsage(id),
 		SnapSize:         h.getSnapSize(id),
-		ContentSize:      h.getContentSize(id),
-		LoadedPercentage: h.getLoadedPercentage(id, current),
-	}
+		ContentSize:      cs,
+		LoadedPercentage: p,
+	}, snap
 }
 
 func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
@@ -97,6 +104,15 @@ func (h *History) RequestApply(id string, initUsage int) error {
 	})
 	h.applyLock.Unlock()
 	return nil
+}
+
+func (h *History) FindSnapshot(id string) *core.Snapshot {
+	var snap core.Snapshot
+	err := core.LoadFrom(h.path(id), &snap)
+	if err != nil {
+		return nil
+	}
+	return &snap
 }
 
 type _ApplyItem struct {
@@ -174,23 +190,6 @@ func (h *History) getSnapSize(id string) int {
 		return 0
 	}
 	return int(info.Size())
-}
-func (h *History) getContentSize(id string) int {
-	var snap core.Snapshot
-	err := core.LoadFrom(h.path(id), &snap)
-	if err != nil {
-		return 0
-	}
-	rs, _ := snap.Sizes()
-	return rs
-}
-func (h *History) getLoadedPercentage(id string, current *core.Snapshot) float32 {
-	var snap core.Snapshot
-	err := core.LoadFrom(h.path(id), &snap)
-	if err != nil {
-		return 0
-	}
-	return core.CompareSnapshot(current, &snap).Loaded
 }
 
 func (h *History) doApply(id string) error {

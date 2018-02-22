@@ -40,9 +40,11 @@ func (d *Daemon) Status() []string {
 		"Loaded%",
 	)
 
+	total := &core.Snapshot{}
+
 	ret = append(ret, head)
 	for _, cfg := range d.cfgs {
-		ss := d.history.Status(cfg.Id, current)
+		ss, snap := d.history.Status(cfg.Id, current)
 		v := fmt.Sprintf("%-20s%10d%15s%15s%8.2f",
 			cfg.Id,
 			ss.HitCount,
@@ -51,7 +53,23 @@ func (d *Daemon) Status() []string {
 			ss.LoadedPercentage*100,
 		)
 		ret = append(ret, v)
+
+		if snap != nil {
+			for _, i := range snap.Infos {
+				total.Add(i)
+			}
+		}
 	}
+
+	tcs, tp := total.AnalyzeSnapshotLoad(current)
+	ret = append(ret, fmt.Sprintf("%-20s%10s%15s%15s%8.2f",
+		"TOTAL",
+		"/",
+		"/",
+		core.HumanSize(tcs),
+		tp*100,
+	))
+
 	return ret
 }
 
