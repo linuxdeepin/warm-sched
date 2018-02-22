@@ -4,7 +4,6 @@ import (
 	"../core"
 	"../events"
 	"context"
-	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -41,13 +40,7 @@ func RunRPCService(ctx context.Context, d *Daemon, netType string, addr string) 
 }
 
 func (s RPCService) ListConfig(_ bool, out *[]string) error {
-	var ret []string
-	ret = append(ret, "ID\tHitCount")
-	for _, cfg := range s.daemon.cfgs {
-		v := fmt.Sprintf("%s\t%d", cfg.Id, s.daemon.history.Usage(cfg.Id))
-		ret = append(ret, v)
-	}
-	*out = ret
+	*out = s.daemon.Status()
 	return nil
 }
 

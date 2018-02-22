@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -22,6 +23,36 @@ type Daemon struct {
 	cancel func()
 
 	scheduling bool
+}
+
+func (d *Daemon) Status() []string {
+	current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
+	if err != nil {
+		return nil
+	}
+
+	var ret []string
+	head := fmt.Sprintf("%-20s%10s%15s%15s%10s",
+		"ID",
+		"HitCount",
+		"SnapSize",
+		"ContentSize",
+		"Loaded%",
+	)
+
+	ret = append(ret, head)
+	for _, cfg := range d.cfgs {
+		ss := d.history.Status(cfg.Id, current)
+		v := fmt.Sprintf("%-20s%10d%15s%15s%8.2f",
+			cfg.Id,
+			ss.HitCount,
+			core.HumanSize(ss.SnapSize),
+			core.HumanSize(ss.ContentSize),
+			ss.LoadedPercentage*100,
+		)
+		ret = append(ret, v)
+	}
+	return ret
 }
 
 func (d *Daemon) SwitchUserSession(envs map[string]string) error {
@@ -108,7 +139,7 @@ func main() {
 	auto := flag.Bool("auto", true, "automatically schedule")
 	lowMemory := flag.Int("lowMemory", 1024*1024, "The threshold of low memory in KB, when available memory is lower than the threshold, daemon will quit")
 
-	timeout := flag.Int("timeout", 60*10, "Maximum seconds to wait")
+	timeout := flag.Int("timeout", 60*30, "Maximum seconds to wait")
 
 	flag.Parse()
 

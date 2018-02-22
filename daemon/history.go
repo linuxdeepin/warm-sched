@@ -5,16 +5,12 @@ import (
 	"../events"
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"sort"
 	"sync"
 	"time"
 )
-
-type _ApplyItem struct {
-	Id       string
-	Priority int
-}
 
 type History struct {
 	cacheDir string
@@ -25,6 +21,13 @@ type History struct {
 
 	applyLock  sync.Mutex
 	applyQueue []_ApplyItem
+}
+
+type HistoryStatus struct {
+	HitCount         int
+	SnapSize         int
+	ContentSize      int
+	LoadedPercentage float32
 }
 
 func NewHistory(ctx context.Context, cache string) *History {
@@ -44,31 +47,13 @@ func NewHistory(ctx context.Context, cache string) *History {
 	return h
 }
 
-func (h *History) has(id string) bool    { return FileExist(h.path(id)) }
-func (h *History) path(id string) string { return path.Join(h.cacheDir, "snap", id) }
-func (h *History) hpath() string         { return path.Join(h.cacheDir, "history") }
-
-func (h *History) loadUsage() {
-	h.usageLock.Lock()
-	core.LoadFrom(h.hpath(), &h.usage)
-	h.usageLock.Unlock()
-}
-func (h *History) storeUsage() {
-	h.usageLock.Lock()
-	core.StoreTo(h.hpath(), h.usage)
-	h.usageLock.Unlock()
-}
-func (h *History) addUsage(id string) {
-	h.usageLock.Lock()
-	h.usage[id]++
-	h.usageLock.Unlock()
-	h.storeUsage()
-}
-func (h *History) Usage(id string) int {
-	h.usageLock.Lock()
-	v := h.usage[id]
-	h.usageLock.Unlock()
-	return v
+func (h *History) Status(id string, current *core.Snapshot) HistoryStatus {
+	return HistoryStatus{
+		HitCount:         h.getUsage(id),
+		SnapSize:         h.getSnapSize(id),
+		ContentSize:      h.getContentSize(id),
+		LoadedPercentage: h.getLoadedPercentage(id, current),
+	}
 }
 
 func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
@@ -108,10 +93,42 @@ func (h *History) RequestApply(id string, initUsage int) error {
 	h.applyLock.Lock()
 	h.applyQueue = append(h.applyQueue, _ApplyItem{
 		Id:       id,
-		Priority: initUsage + h.Usage(id),
+		Priority: initUsage + h.getUsage(id),
 	})
 	h.applyLock.Unlock()
 	return nil
+}
+
+type _ApplyItem struct {
+	Id       string
+	Priority int
+}
+
+func (h *History) has(id string) bool    { return FileExist(h.path(id)) }
+func (h *History) path(id string) string { return path.Join(h.cacheDir, "snap", id) }
+func (h *History) hpath() string         { return path.Join(h.cacheDir, "history") }
+
+func (h *History) loadUsage() {
+	h.usageLock.Lock()
+	core.LoadFrom(h.hpath(), &h.usage)
+	h.usageLock.Unlock()
+}
+func (h *History) storeUsage() {
+	h.usageLock.Lock()
+	core.StoreTo(h.hpath(), h.usage)
+	h.usageLock.Unlock()
+}
+func (h *History) addUsage(id string) {
+	h.usageLock.Lock()
+	h.usage[id]++
+	h.usageLock.Unlock()
+	h.storeUsage()
+}
+func (h *History) getUsage(id string) int {
+	h.usageLock.Lock()
+	v := h.usage[id]
+	h.usageLock.Unlock()
+	return v
 }
 
 func (h *History) poll(ctx context.Context) {
@@ -149,6 +166,31 @@ func (h *History) handleApply() error {
 		Log("End DoApply %q\n", id)
 	}
 	return nil
+}
+
+func (h *History) getSnapSize(id string) int {
+	info, err := os.Stat(h.path(id))
+	if err != nil {
+		return 0
+	}
+	return int(info.Size())
+}
+func (h *History) getContentSize(id string) int {
+	var snap core.Snapshot
+	err := core.LoadFrom(h.path(id), &snap)
+	if err != nil {
+		return 0
+	}
+	rs, _ := snap.Sizes()
+	return rs
+}
+func (h *History) getLoadedPercentage(id string, current *core.Snapshot) float32 {
+	var snap core.Snapshot
+	err := core.LoadFrom(h.path(id), &snap)
+	if err != nil {
+		return 0
+	}
+	return core.CompareSnapshot(current, &snap).Loaded
 }
 
 func (h *History) doApply(id string) error {

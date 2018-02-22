@@ -42,7 +42,7 @@ func (s *Snapshot) Add(i FileInfo) error {
 }
 
 func (s *Snapshot) String() string {
-	ramSize, fileSize := s.sizes()
+	ramSize, fileSize := s.Sizes()
 	if fileSize == 0 {
 		fileSize = 1
 	}
@@ -84,6 +84,7 @@ func DumpSnapshot(snap *Snapshot) error {
 type SnapshotDiff struct {
 	Added   []FileInfo
 	Deleted []FileInfo
+	Loaded  float32
 }
 
 func (d SnapshotDiff) String() string {
@@ -110,6 +111,7 @@ func (d SnapshotDiff) String() string {
 
 func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 	cache := make(map[string]FileInfo)
+	union := createSnapshot()
 	for _, i := range a.Infos {
 		cache[i.Name] = i
 	}
@@ -119,6 +121,7 @@ func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 		if _, ok := cache[i.Name]; !ok {
 			added = append(added, i)
 		} else {
+			union.Add(i)
 			delete(cache, i.Name)
 		}
 	}
@@ -126,10 +129,21 @@ func CompareSnapshot(a *Snapshot, b *Snapshot) *SnapshotDiff {
 	for _, v := range cache {
 		deleted = append(deleted, v)
 	}
-	return &SnapshotDiff{added, deleted}
+
+	var loadedPercentage float32
+	if totalSize, _ := b.Sizes(); totalSize != 0 {
+		loadedSize, _ := union.Sizes()
+		loadedPercentage = float32(loadedSize) / float32(totalSize)
+	}
+
+	return &SnapshotDiff{
+		added,
+		deleted,
+		loadedPercentage,
+	}
 }
 
-func (s *Snapshot) sizes() (int, int) {
+func (s *Snapshot) Sizes() (int, int) {
 	var ret1, ret2 int
 	for _, r := range s.Infos {
 		ret1 += r.RAMSize()

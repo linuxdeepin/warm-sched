@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"golang.org/x/sys/unix"
+	"os"
+	"path"
 	"reflect"
 	"syscall"
 	"testing"
@@ -21,24 +23,34 @@ func TestRangeStartWithTrues(t *testing.T) {
 	}
 }
 
-func createFile(name string, pageCount int) string {
-	return "/usr/bin/git"
-}
-
-func randomePageRange(maxCount int) []PageRange {
-	return []PageRange{
-		PageRange{0, 1},
-		PageRange{2, 1},
-		PageRange{4, 1},
-		PageRange{11, 1},
+func findTestFile(name string) (string, error) {
+	info, err := os.Lstat(name)
+	if err != nil {
+		return "", err
 	}
+	if info.Mode().IsRegular() {
+		return name, nil
+	}
+
+	rl, err := os.Readlink(name)
+	if err != nil {
+		return "", err
+	}
+	if path.IsAbs(rl) {
+		return rl, nil
+	}
+	return path.Join(path.Dir(name), rl), nil
 }
 
 func TestLoad(t *testing.T) {
-	a := createFile("A", 50)
+	a, err := findTestFile("/usr/bin/gofmt")
+	if err != nil {
+		t.Skip(err)
+		return
+	}
 
 	// 1. drop file A
-	err := _FAdvise(a, nil, _AdviseDrop)
+	err = _FAdvise(a, nil, _AdviseDrop)
 	if err != nil {
 		t.Fatalf("Can't drop %s' page cache", a)
 	}
@@ -50,17 +62,22 @@ func TestLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(i.Mapping) != 0 {
-		t.Fatal("Drop failed", i.Mapping)
+		t.Fatal("Drop failed", i, i.Mapping)
 	}
 
 	// 3. load random pages
-	rs := randomePageRange(50)
+	randomPageRange := []PageRange{
+		PageRange{0, 1},
+		PageRange{2, 1},
+		PageRange{4, 1},
+		PageRange{11, 1},
+	}
 
-	err = _FAdvise(a, rs, _AdviseLoad)
+	err = _FAdvise(a, randomPageRange, _AdviseLoad)
 	if err != nil {
 		t.Fatal("Failed excute AdviseLoad", err)
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 5)
 
 	i, err = FileMincore(a)
 	if err != nil {
@@ -68,8 +85,8 @@ func TestLoad(t *testing.T) {
 	}
 
 	// 3. check loaded pages
-	if !reflect.DeepEqual(i.Mapping, rs) {
-		t.Fatalf("Except %v, but got %v", rs, i.Mapping)
+	if !reflect.DeepEqual(i.Mapping, randomPageRange) {
+		t.Fatalf("Except %v, but got %v", randomPageRange, i.Mapping)
 	}
 }
 
