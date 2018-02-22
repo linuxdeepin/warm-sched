@@ -143,6 +143,10 @@ func main() {
 
 	flag.Parse()
 
+	defer func() {
+		exec.Command("rmmod", "mincores").Run()
+	}()
+
 	t := time.Duration(*timeout) * time.Second
 	err := RunDaemon(*cfgDir, *cacheDir, *socket, *auto, uint64(*lowMemory*1024), t)
 	if err != nil {
