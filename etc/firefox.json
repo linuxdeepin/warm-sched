@@ -16,7 +16,10 @@
                 "Type": "filelist",
                 "FileList": [
                     "$HOME/.cache/mozilla/firefox",
-                    "$HOME/.mozilla/firefox"
+                    "$HOME/.mozilla/firefox",
+                    "/usr/share/fonts/",
+                    "/usr/lib/python3/",
+                    "/usr/lib/python3.5/"
                 ]
             }
         ]
