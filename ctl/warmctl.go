@@ -11,6 +11,7 @@ type AppFlags struct {
 	capture      bool
 	schedule     bool
 	switchToUser bool
+	apply        bool
 
 	dump bool
 
@@ -22,6 +23,7 @@ func InitFlags() AppFlags {
 	var af AppFlags
 
 	flag.BoolVar(&af.capture, "c", false, "capture a snapshot")
+	flag.BoolVar(&af.apply, "a", false, "apply a snapshot")
 	flag.BoolVar(&af.schedule, "s", false, "schedule handle snapshot by configures")
 	flag.BoolVar(&af.switchToUser, "u", false, "let warm-daemon switch on this session")
 	flag.BoolVar(&af.dump, "dump", false, "dump content of the snapshot")
@@ -48,6 +50,13 @@ func CompareSnapshot(f1 string, f2 string) (*core.SnapshotDiff, error) {
 
 func doActions(af AppFlags, args []string) error {
 	switch {
+	case af.apply:
+		var s1 core.Snapshot
+		err := core.LoadFrom(args[0], &s1)
+		if err != nil {
+			return err
+		}
+		return core.ApplySnapshot(&s1, true)
 	case af.capture:
 		current, err := core.CaptureSnapshot(core.NewCaptureMethodMincores("/", "/home"))
 		if err != nil {
