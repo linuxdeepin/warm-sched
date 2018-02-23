@@ -16,15 +16,16 @@ type History struct {
 	cacheDir string
 	ss       *snapshotSource
 
-	usage     map[string]int
-	usageLock sync.Mutex
+	counts *HistoryCounts
 
 	applyLock  sync.Mutex
 	applyQueue []_ApplyItem
 }
 
 type HistoryStatus struct {
-	HitCount         int
+	CaptureCount     int
+	ApplyCount       int
+	LifetimeCount    int
 	SnapSize         int
 	ContentSize      int
 	LoadedPercentage float32
@@ -39,9 +40,8 @@ func NewHistory(ctx context.Context, cache string) *History {
 	h := &History{
 		cacheDir: cache,
 		ss:       ss,
-		usage:    make(map[string]int),
 	}
-	h.loadUsage()
+	h.counts = NewHistoryCounts(h.hpath())
 
 	go h.poll(ctx)
 	return h
@@ -56,16 +56,21 @@ func (h *History) Status(id string, current *core.Snapshot) (HistoryStatus, *cor
 	cs, p := snap.AnalyzeSnapshotLoad(current)
 
 	return HistoryStatus{
-		HitCount:         h.getUsage(id),
-		SnapSize:         h.getSnapSize(id),
-		ContentSize:      cs,
+		CaptureCount:  h.counts.GetCapture(id),
+		ApplyCount:    h.counts.GetApply(id),
+		LifetimeCount: h.counts.GetLifetime(id),
+		SnapSize:      h.getSnapSize(id),
+		ContentSize:   cs,
+
 		LoadedPercentage: p,
 	}, snap
 }
 
 func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
-	h.addUsage(id)
-	if h.has(id) && !c.AlwaysLoad {
+	h.counts.AddCapture(id)
+	h.counts.SetLifetime(id, c.Lifetime)
+
+	if h.has(id) && !h.counts.NeedUpdate(id) {
 		Log("Ignore capture %q because already has one sample.\n", id)
 		return nil
 	}
@@ -100,7 +105,7 @@ func (h *History) RequestApply(id string, initUsage int) error {
 	h.applyLock.Lock()
 	h.applyQueue = append(h.applyQueue, _ApplyItem{
 		Id:       id,
-		Priority: initUsage + h.getUsage(id),
+		Priority: initUsage + h.counts.GetCapture(id),
 	})
 	h.applyLock.Unlock()
 	return nil
@@ -123,29 +128,6 @@ type _ApplyItem struct {
 func (h *History) has(id string) bool    { return FileExist(h.path(id)) }
 func (h *History) path(id string) string { return path.Join(h.cacheDir, "snap", id) }
 func (h *History) hpath() string         { return path.Join(h.cacheDir, "history") }
-
-func (h *History) loadUsage() {
-	h.usageLock.Lock()
-	core.LoadFrom(h.hpath(), &h.usage)
-	h.usageLock.Unlock()
-}
-func (h *History) storeUsage() {
-	h.usageLock.Lock()
-	core.StoreTo(h.hpath(), h.usage)
-	h.usageLock.Unlock()
-}
-func (h *History) addUsage(id string) {
-	h.usageLock.Lock()
-	h.usage[id]++
-	h.usageLock.Unlock()
-	h.storeUsage()
-}
-func (h *History) getUsage(id string) int {
-	h.usageLock.Lock()
-	v := h.usage[id]
-	h.usageLock.Unlock()
-	return v
-}
 
 func (h *History) poll(ctx context.Context) {
 	for {
@@ -202,6 +184,7 @@ func (h *History) doApply(id string) error {
 	if err != nil {
 		return err
 	}
+	h.counts.AddApply(id)
 	h.ss.markLoaded(id)
 	return nil
 }

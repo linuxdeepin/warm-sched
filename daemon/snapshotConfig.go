@@ -37,7 +37,7 @@ type CaptureConfig struct {
 	After  []string
 	Before []string
 
-	AlwaysLoad bool
+	Lifetime int
 
 	WaitSecond int
 

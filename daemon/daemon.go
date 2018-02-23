@@ -32,9 +32,11 @@ func (d *Daemon) Status() []string {
 	}
 
 	var ret []string
-	head := fmt.Sprintf("%-20s%10s%15s%15s%10s",
+	head := fmt.Sprintf("%-20s%8s%7s%10s%15s%15s%10s",
 		"ID",
-		"HitCount",
+		"CaptureC",
+		"ApplyC",
+		"LifetimeC",
 		"SnapSize",
 		"ContentSize",
 		"Loaded%",
@@ -45,9 +47,12 @@ func (d *Daemon) Status() []string {
 	ret = append(ret, head)
 	for _, cfg := range d.cfgs {
 		ss, snap := d.history.Status(cfg.Id, current)
-		v := fmt.Sprintf("%-20s%10d%15s%15s%8.2f",
+
+		v := fmt.Sprintf("%-20s%8d%7d%10d%15s%15s%8.2f",
 			cfg.Id,
-			ss.HitCount,
+			ss.CaptureCount,
+			ss.ApplyCount,
+			ss.LifetimeCount,
 			core.HumanSize(ss.SnapSize),
 			core.HumanSize(ss.ContentSize),
 			ss.LoadedPercentage*100,
@@ -62,10 +67,12 @@ func (d *Daemon) Status() []string {
 	}
 
 	tcs, tp := total.AnalyzeSnapshotLoad(current)
-	ret = append(ret, fmt.Sprintf("%-20s%10s%15s%15s%8.2f",
+	ret = append(ret, fmt.Sprintf("%-20s%8s%7s%10s%15s%15s%8.2f",
 		"TOTAL",
-		"/",
-		"/",
+		"\u0078",
+		"\u0078",
+		"\u0078",
+		"\u0078",
 		core.HumanSize(tcs),
 		tp*100,
 	))
