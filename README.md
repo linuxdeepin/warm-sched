@@ -32,7 +32,16 @@ warm-shed通过kernel module的方式直接导出VFS中inode的情况来大大�
 因此warm-sched在用户态通过配合systemd, startdde可以多次进行全盘扫描对比差异.
 
 # 其他软件对比
-总体来说由于warm-sched自带一个高效的PageCache分析机制/proc/mincores, 因此可以更好的挖掘预加载潜能．
+1. warm-sched实现了一个高效的PageCache分析机制/proc/mincores, 因此可以更好的挖掘预加载潜能.
+2. 基于事件源提供预热配置框架, 达到在不同阶段进行精准的记录.
+
+目前支持多种事件来源, 并且提供接口实现新的事件源.
+- 基于文件是否存在
+- 基于X11 应用进程是否出现
+- 基于systemd unit是否出现
+- 基于其他snapshot是否已经加载
+- 基于某个进程名是否出现
+
 
 ## systemd-readahead
 systemd[自带组件](http://sourceforge.net/projects/preload)，目前由于无人维护，且systemd的维护者使用的都是固态盘因此此组件被废弃．
@@ -44,49 +53,26 @@ systemd-readahead只记录了systemd启动过程中的资源情况，且因为�
 
 preload只收集了进程的elf文件，但UI程序启动还依赖大量的字体，图片等文件．因此preload对DE的效果十分不明显．
 
-# 实现
-1. DE登录后20s左右后，在idle状态下分析Page Cache中file system的cache情况，并记录为cache list
-2. 进入用户界面前，读取cache list并预加载对应文件．
-
-- cache list的生成, 通过mmap(2) + mincore(2) 扫描/{,usr}/lib, /{,usr}/bin等目录下的文件．
-- cache list的读取, 通过mmap(2) + madvise(2) 进行精准预读．
-
-
-# 样本数据
-
-[样本数据](./sample.list)
-是在deepin 15.4.1 刚进入桌面后启动deepin-terminal后收集
-
-`./warm-sched -c | sort -hr`
-
-后生成
-
-第一列为对应文件实际使用的RAM, 第二列为占用RAM与文件大小的比例，第三列为文件路径．
-
-从样本数据可以发现一些　[问题](https://github.com/snyh/warm-sched/issues)
-
-注意: 这些只是Page Cache的使用情况, 在内存压力较大时，只要最近没有访问，且是干净的(没修改过)，
-那么在换页时的代价是非常小的．
-
-
 # 编译
 1. vagrant up && vagrant ssh
 2. dpkg-buildpackage && cp ../*.deb . && dh clean && exit
 
 # 测试方式
 1. 安装mincores-dkms.deb以及warm-sched.deb
-2. 重启以后，登录dde, 等待20s
+2. 重启以后，登录dde, 在30分钟打开chrome,firefox等默认支持的应用程序.
 3. 下次重启即可对比实际效果．
 
 # TODO
 - [X] 分系统级与用户级阶段加载．分别在sysinit.target和greeter输入密码阶段
 - [X] 使用kernel module 或 ebpf等机制 查询某个dentry是否在page cache中
 - [X] 文件黑名单
-- [ ] 使用startdde提供的launch app接口UI App进行snapshot
-- [ ] 纳入应用启动时间参数到UI App snapshot
 - [X] 实验环境下，分析应该对哪些目录进行扫描，以便生成cache list.
 - [X] 实验分析在哪个阶段进行预热更合适．
-- [ ] 根据实际可用内存大小预热价值更高的文件．
-- [ ] 记录历史信息统计文件使用频率
+- [X] 根据实际可用内存大小预热价值更高的文件.
+- [X] 记录历史信息统计文件使用频率.
+- [X] 提供snapshot inspection.
 - [ ] 根据实际分析，清理进入桌面后明显不会被用到的Cache(比如plymouth等), 辅助kernel进行调度.
-- [ ] 提供snapshot inspection
+- [ ] 完善黑名单机制.
+- [ ] 在配置文件变动时, 标记对应snapshot为dirty, 以便下次执行实际的capture操作.
+- [ ] 在TryFile变动时, 标记对应snapshot为dirty, 以便下次执行实际的capture操作.
+- [ ] 剥离事件源到独立的组件中,以便支持外部事件源.
