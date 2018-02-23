@@ -86,3 +86,23 @@ func TestProcess(t *testing.T) {
 		t.Fatal("Should found process of go")
 	}
 }
+
+func TestFile(t *testing.T) {
+	Connect([]string{"file:/shouldn't have this file"}, func() {
+		t.Fatal("The file shouldn't exists.")
+	})
+
+	found := false
+	Connect([]string{"file:/etc"}, func() {
+		found = true
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	err := Run(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	if !found {
+		t.Fatal("Should found /etc")
+	}
+}
