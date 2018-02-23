@@ -1,8 +1,5 @@
 GOPATH=$(shell pwd)/vendor
-all: update-vendor build-ctrl build-daemon
-
-update-vendor:
-	git submodule update --init
+all: build-ctrl build-daemon
 
 build-ctrl:
 	cd ctl && go build -o ../bin/warmctl
