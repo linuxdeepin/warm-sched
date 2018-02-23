@@ -4,8 +4,7 @@
     "Description": "basic system snapshot",
 
     "Apply": {
-        "Before": ["systemd:sysinit.target"],
-        "After": [ "systemd:local-fs.target" ]
+        "Before": ["systemd:sysinit.target"]
     },
     "Capture": {
         "Before": ["systemd:lightdm.service", "snapshot:BASIC"],
