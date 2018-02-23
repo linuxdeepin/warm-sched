@@ -70,9 +70,12 @@ func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
 	h.counts.AddCapture(id)
 	h.counts.SetLifetime(id, c.Lifetime)
 
-	if h.has(id) && !h.counts.NeedUpdate(id) {
-		Log("Ignore capture %q because already has one sample.\n", id)
-		return nil
+	if h.has(id) {
+		if !h.counts.IsDirty(id) {
+			Log("Ignore capture %q because already has one sample.\n", id)
+			return nil
+		}
+		Log("The snapshot of %q is dirty. so recapture one.\n", id)
 	}
 
 	Log("Begin DoCapture %q\n", id)

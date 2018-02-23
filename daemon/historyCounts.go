@@ -84,10 +84,14 @@ func (hc *HistoryCounts) SetLifetime(id string, v int) {
 	hc.lock.Unlock()
 	hc.store()
 }
-func (hc *HistoryCounts) NeedUpdate(id string) bool {
+func (hc *HistoryCounts) IsDirty(id string) bool {
 	lc := hc.get(lifetimeC, id)
 	if lc == 0 {
 		return false
 	}
-	return lc <= hc.GetApply(id)
+	ac := hc.GetApply(id)
+	if ac == 0 {
+		return false
+	}
+	return ac%lc == 0
 }
