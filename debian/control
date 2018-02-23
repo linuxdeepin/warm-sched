@@ -8,7 +8,7 @@ Homepage: http://github.com/snyh/warm-sched
 
 Package: warm-sched
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, mincores-dkms, git
+Depends: ${shlibs:Depends}, ${misc:Depends}, mincores-dkms
 Description: speed up login DE enviornment
   using warm-sched's mincores kernel module and fadvise to preload precisely file cache
 
