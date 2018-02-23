@@ -68,3 +68,21 @@ func TestWait(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestProcess(t *testing.T) {
+	found := false
+	Connect([]string{"process:go"}, func() {
+		found = true
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	err := Run(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	if !found {
+		t.Fatal("Should found process of go")
+	}
+}
