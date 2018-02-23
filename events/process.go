@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 )
 
-type ProcessSource struct {
+type processSource struct {
 }
 
 func init() {
-	Register(&ProcessSource{})
+	Register(&processSource{})
 }
 
-const processScope = "process"
+const ProcessScope = "process"
 
-func (ProcessSource) Scope() string { return processScope }
+func (processSource) Scope() string { return ProcessScope }
 
-func (s ProcessSource) Check(names []string) []string {
+func (s processSource) Check(names []string) []string {
 	es, err := filepath.Glob("/proc/*/exe")
 	if err != nil {
 		return nil

@@ -48,14 +48,16 @@ var _M_ = &_Manager{
 	waits:      make(map[int]_Wait),
 }
 
-func IsSupport(scope string) bool    { return _M_.isSupport(scope) }
 func Pendings(scope string) []string { return _M_.Pendings(scope) }
-func Emit(scope string, id string)   { _M_.Emit(scope, id) }
-func Register(g Generator)           { _M_.Register(g) }
-func Run(ctx context.Context) error  { return _M_.Run(ctx) }
-func Scopes() []string               { return _M_.Scopes() }
+func Check(es []string) []string     { return _M_.Check(es) }
 
-func Check(es []string) []string { return _M_.Check(es) }
+func Connect(es []string, callback func()) error { return _M_.Connect(es, callback) }
+
+func Register(g Generator)          { _M_.Register(g) }
+func Run(ctx context.Context) error { return _M_.Run(ctx) }
+
+func Scopes() []string { return _M_.Scopes() }
+
 func (m *_Manager) Check(es []string) []string {
 	var ret []string
 	for _, raw := range es {
@@ -73,8 +75,6 @@ func (m *_Manager) Check(es []string) []string {
 	}
 	return ret
 }
-
-func Connect(es []string, callback func()) error { return _M_.Connect(es, callback) }
 
 func splitEvent(raw string) (string, string, bool) {
 	fs := strings.SplitN(raw, ":", 2)

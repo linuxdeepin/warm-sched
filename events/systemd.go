@@ -6,16 +6,18 @@ import (
 )
 
 func init() {
-	Register(&_SystemdEventSources{})
+	Register(&systemdEventSources{})
 }
 
-type _SystemdEventSources struct {
+type systemdEventSources struct {
 	stop chan struct{}
 }
 
-func (s *_SystemdEventSources) Scope() string { return "systemd" }
+const SystemdScope = "systemd"
 
-func (s _SystemdEventSources) Check(names []string) []string {
+func (s *systemdEventSources) Scope() string { return SystemdScope }
+
+func (s systemdEventSources) Check(names []string) []string {
 	conn, err := dbus.New()
 	if err != nil {
 		fmt.Println("E:", err)

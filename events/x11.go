@@ -5,18 +5,18 @@ import (
 	"github.com/BurntSushi/xgbutil/xprop"
 )
 
-type X11Source struct {
+type x11Source struct {
 }
 
 func init() {
-	Register(&X11Source{})
+	Register(&x11Source{})
 }
 
-const x11Scope = "x11"
+const X11Scope = "x11"
 
-func (X11Source) Scope() string { return x11Scope }
+func (x11Source) Scope() string { return X11Scope }
 
-func (s X11Source) Check(names []string) []string {
+func (s x11Source) Check(names []string) []string {
 	xu, err := xgbutil.NewConnDisplay("")
 	if err != nil {
 		return nil
