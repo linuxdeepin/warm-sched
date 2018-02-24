@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 )
 
@@ -142,8 +143,12 @@ func RunDaemon(etc string, cache, addr string, auto bool, lowMemory uint64, time
 		cancel:      cancel,
 	}
 
-	go quitWhenLowMemory(ctx, cancel, lowMemory)
-	go quitWhenTimeout(ctx, cancel, timeout)
+	if !FileExist(path.Join(cache, "debug")) {
+		go quitWhenLowMemory(ctx, cancel, lowMemory)
+		go quitWhenTimeout(ctx, cancel, timeout)
+	} else {
+		Log("In Debug Mode. Daemon wouldn't automatically quit.\n")
+	}
 
 	events.Register(d.innerSource)
 
