@@ -43,7 +43,7 @@ func FileMincore(fname string) (FileInfo, error) {
 		FileSize: uint64(size),
 		Mapping:  mappings,
 
-		dev:    sinfo.Dev,
+		dev:    uint64(sinfo.Dev),
 		sector: sector,
 	}, nil
 }
