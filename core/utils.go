@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -152,4 +153,19 @@ func StoreTo(fname string, o interface{}) error {
 		return err
 	}
 	return gob.NewEncoder(w).Encode(o)
+}
+
+func ReadFileInclude(f string) []string {
+	bs, err := ioutil.ReadFile(f)
+	if err != nil {
+		return nil
+	}
+	var ret []string
+	for _, l := range strings.Split(string(bs), "\n") {
+		l = strings.TrimSpace(l)
+		if l != "" {
+			ret = append(ret, l)
+		}
+	}
+	return ret
 }

@@ -54,9 +54,12 @@ func TestBlackList(t *testing.T) {
 
 	r := SimpleCaptureResult{}
 	err = DoCapture(NewCaptureMethodFileList(
-		"/lib/x86_64-linux-gnu/libpthread-2.24.so",
-		"/etc/hosts",
-		"/etc/hostname",
+		[]string{
+			"/lib/x86_64-linux-gnu/libpthread-2.24.so",
+			"/etc/hosts",
+			"/etc/hostname",
+		},
+		nil,
 	).Black("/etc", "/"),
 		r.Add,
 	)

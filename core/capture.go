@@ -22,6 +22,8 @@ type CaptureMethod struct {
 
 	// 3. "filelist:["$filename"]" 直接传递实际数据．
 	FileList []string
+	// 3. "filelis:[$includePath"]"
+	IncludeList []string
 
 	// 4. "uiapp:wmclass"
 	WMClass string
@@ -34,10 +36,11 @@ func NewCaptureMethodPIDs(pids ...int) *CaptureMethod {
 	}
 }
 
-func NewCaptureMethodFileList(list ...string) *CaptureMethod {
+func NewCaptureMethodFileList(fileList []string, includeList []string) *CaptureMethod {
 	return &CaptureMethod{
-		Type:     _MethodFileList,
-		FileList: list,
+		Type:        _MethodFileList,
+		FileList:    fileList,
+		IncludeList: includeList,
 	}
 }
 
@@ -70,7 +73,11 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 	case _MethodPIDs:
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
-		return _DoCaptureByFileList(_ReduceFilePath(m.Getenv, m.FileList...), true, m.wrap(handle))
+		all := m.FileList
+		for _, i := range m.IncludeList {
+			all = append(all, ReadFileInclude(i)...)
+		}
+		return _DoCaptureByFileList(_ReduceFilePath(m.Getenv, all...), true, m.wrap(handle))
 	case _MethodUIApp:
 		_m, err := NewCaptureMethodUIApp(m.WMClass)
 		if err != nil {
