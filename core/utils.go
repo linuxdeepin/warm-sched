@@ -78,12 +78,12 @@ func ListMountPoints() []string {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return nil
+		return []string{"/"}
 	}
 
 	line, err := buf.ReadString('\n')
 	if line != "Mounted on\n" || err != nil {
-		return nil
+		return []string{"/"}
 	}
 	var ret []string
 	for {
