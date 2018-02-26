@@ -13,7 +13,7 @@ Description: speed up login DE enviornment
   using warm-sched's mincores kernel module and fadvise to preload precisely file cache
 
 Package: mincores-dkms
-Depends: linux-headers | linux-headers-generic | linux-headers-amd64 | linux-headers-deepin-amd64
+Depends: linux-headers | linux-headers-generic | linux-headers-amd64 | linux-headers-deepin-amd64, libelf-dev
 Architecture: any
 Description: mincores kernel module
  mincores kernel module package.
