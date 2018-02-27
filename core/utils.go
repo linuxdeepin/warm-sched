@@ -126,6 +126,7 @@ func LoadJSONFrom(fname string, o interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	err = json.NewDecoder(f).Decode(o)
 	if err != nil {
 		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
@@ -137,6 +138,7 @@ func LoadFrom(fname string, o interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	err = gob.NewDecoder(f).Decode(o)
 	if err != nil {
 		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
@@ -152,6 +154,7 @@ func StoreTo(fname string, o interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer w.Close()
 	return gob.NewEncoder(w).Encode(o)
 }
 
