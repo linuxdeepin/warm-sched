@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type X11Finder func(pid int, wmclass string) bool
@@ -70,15 +71,28 @@ func _UIGroupFromPID(pid int) (string, error) {
 	return "", fmt.Errorf("Not Found")
 }
 
-func X11ClientIterate(finder X11Finder) error {
-	xu, err := xgbutil.NewConnDisplay("")
-	if err != nil {
-		return nil
+var getXU = func() func() (*xgbutil.XUtil, error) {
+	var cache *xgbutil.XUtil
+	m := &sync.Mutex{}
+	return func() (*xgbutil.XUtil, error) {
+		m.Lock()
+		var err error
+		if cache == nil {
+			cache, err = xgbutil.NewConn()
+		}
+		m.Unlock()
+		return cache, err
 	}
-	defer xu.Conn().Close()
+}()
+
+func X11ClientIterate(finder X11Finder) error {
+	xu, err := getXU()
+	if err != nil {
+		return err
+	}
 	ws, err := xprop.PropValWindows(xprop.GetProperty(xu, xu.RootWin(), "_NET_CLIENT_LIST"))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	for _, xid := range ws {
