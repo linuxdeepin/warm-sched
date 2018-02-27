@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type Finder func(pid int, wmclass string) bool
+type X11Finder func(pid int, wmclass string) bool
 
 func NewCaptureMethodUIApp(wmclass string) (*CaptureMethod, error) {
 	if wmclass == "" {
@@ -24,8 +24,8 @@ func NewCaptureMethodUIApp(wmclass string) (*CaptureMethod, error) {
 		}
 		return false
 	}
-	found := findPidInUIWindows(fn)
-	if !found || pid == 0 {
+	X11ClientIterate(fn)
+	if pid == 0 {
 		return nil, fmt.Errorf("Not Found")
 	}
 	cpath, err := _UIGroupFromPID(pid)
@@ -70,18 +70,15 @@ func _UIGroupFromPID(pid int) (string, error) {
 	return "", fmt.Errorf("Not Found")
 }
 
-func findPidInUIWindows(finder Finder) bool {
+func X11ClientIterate(finder X11Finder) error {
 	xu, err := xgbutil.NewConnDisplay("")
 	if err != nil {
-		fmt.Println("findPidInUIWindows:", err)
-		return false
+		return nil
 	}
 	defer xu.Conn().Close()
-
 	ws, err := xprop.PropValWindows(xprop.GetProperty(xu, xu.RootWin(), "_NET_CLIENT_LIST"))
 	if err != nil {
-		fmt.Println("findPidInUIWindows:", err)
-		return false
+		return nil
 	}
 
 	for _, xid := range ws {
@@ -93,9 +90,9 @@ func findPidInUIWindows(finder Finder) bool {
 		if err != nil || len(wm) != 2 {
 			continue
 		}
-		if finder(int(pid), wm[1]) {
-			return true
+		if finder != nil && finder(int(pid), wm[1]) {
+			return nil
 		}
 	}
-	return false
+	return nil
 }
