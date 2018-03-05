@@ -1,11 +1,10 @@
 [Unit]
 Description=Run warm-schedule daemon
 After=local-fs.target
-Before=display-manager.service
 DefaultDependencies=no
 
 [Service]
 ExecStart=/bin/warm-daemon -auto -etc=/var/lib/warm-sched/etc -cache=/var/lib/warm-sched/cache
 
 [Install]
-WantedBy=default.target
+WantedBy=sysinit.target

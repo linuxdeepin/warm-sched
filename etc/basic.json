@@ -3,9 +3,6 @@
 
     "Description": "basic system snapshot",
 
-    "Apply": {
-        "Before": ["systemd:sysinit.target"]
-    },
     "Capture": {
         "Before": ["systemd:lightdm.service", "snapshot:BASIC"],
         "After": [ "systemd:lightdm.service"],
