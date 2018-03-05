@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"sort"
 	"sync"
 )
 
@@ -11,10 +10,6 @@ type Snapshot struct {
 
 	cacheLock sync.Mutex
 	cache     map[string]bool
-}
-
-func (s *Snapshot) Sort() {
-	sort.Slice(s.Infos, s.Infos.less)
 }
 
 func (s *Snapshot) Add(i FileInfo) error {
@@ -154,14 +149,6 @@ func (s *Snapshot) sizes() (int, int) {
 }
 
 type FileInfos []FileInfo
-
-func (infos FileInfos) less(i, j int) bool {
-	a, b := infos[i], infos[j]
-	if a.dev == b.dev {
-		return a.sector < b.sector
-	}
-	return a.dev < b.dev
-}
 
 func ApplySnapshot(snap *Snapshot, ignoreError bool) error {
 	for _, r := range snap.Infos {

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sort"
 	"sync"
 	"time"
 )
@@ -152,9 +151,9 @@ func (h *History) handleApply() error {
 	}
 
 	h.applyLock.Lock()
-	sort.Slice(h.applyQueue, func(i, j int) bool {
-		return h.applyQueue[i].Priority > h.applyQueue[j].Priority
-	})
+
+	sortApplyItems(h.applyQueue)
+
 	id := h.applyQueue[0].Id
 	h.applyQueue = h.applyQueue[1:]
 	h.applyLock.Unlock()
