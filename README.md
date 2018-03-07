@@ -73,6 +73,6 @@ preload只收集了进程的elf文件，但UI程序启动还依赖大量的字�
 - [X] 提供snapshot inspection.
 - [ ] 根据实际分析，清理进入桌面后明显不会被用到的Cache(比如plymouth等), 辅助kernel进行调度.
 - [ ] 完善黑名单机制.
-- [ ] 在配置文件变动时, 标记对应snapshot为dirty, 以便下次执行实际的capture操作.
+- [X] 在配置文件变动时, 标记对应snapshot为dirty, 以便下次执行实际的capture操作.
 - [ ] 在TryFile变动时, 标记对应snapshot为dirty, 以便下次执行实际的capture操作.
 - [ ] 剥离事件源到独立的组件中,以便支持外部事件源.

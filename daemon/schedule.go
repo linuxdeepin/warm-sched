@@ -38,6 +38,7 @@ func (d *Daemon) scheduleCaptures() error {
 		id := cfg.Id
 		afters := capture.After
 		befores := capture.Before
+		mtime := cfg.mtime
 
 		if len(befores) != 0 && len(events.Check(befores)) > 0 {
 			Log("Ignore capture %q because some of %v is already done.\n", id, befores)
@@ -46,10 +47,10 @@ func (d *Daemon) scheduleCaptures() error {
 
 		var err error
 		if len(afters) == 0 {
-			err = d.history.DoCapture(id, capture)
+			err = d.history.DoCapture(id, capture, mtime)
 		} else {
 			err = events.Connect(afters, func() {
-				d.history.DoCapture(id, capture)
+				d.history.DoCapture(id, capture, mtime)
 			})
 		}
 		if err != nil {

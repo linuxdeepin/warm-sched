@@ -65,17 +65,28 @@ func (h *History) Status(id string, current *core.Snapshot) (HistoryStatus, *cor
 	}, snap
 }
 
-func (h *History) DoCapture(id string, c CaptureConfig) (err error) {
+func (h *History) DoCapture(id string, c CaptureConfig, cfgmtime time.Time) (err error) {
 	h.counts.AddCapture(id)
 	h.counts.SetLifetime(id, c.Lifetime)
 
-	if h.has(id) {
-		if !h.counts.IsDirty(id) {
-			Log("Ignore capture %q because already has one sample.\n", id)
-			return nil
+	if mt, err := h.mtime(id); err == nil {
+		if cfgmtime.After(mt) {
+			Log("The snapshot of %q's config is after current data, so recapure one.\n", id)
+			if c.HasMincores() {
+				Log("  %q use mincores directly, so delete it and delay real capture when next boot.\n", id)
+				return os.Remove(h.path(id))
+			}
+			goto CONTINUE
 		}
-		Log("The snapshot of %q is dirty. so recapture one.\n", id)
+		if h.counts.IsDirty(id) {
+			Log("The snapshot of %q's lifetime is end. so recapture one.\n", id)
+			goto CONTINUE
+		}
+
+		Log("Ignore capture %q because already has one sample.\n", id)
+		return nil
 	}
+CONTINUE:
 
 	Log("Begin DoCapture %q\n", id)
 	defer func() {
@@ -127,7 +138,15 @@ type _ApplyItem struct {
 	Priority int
 }
 
-func (h *History) has(id string) bool    { return FileExist(h.path(id)) }
+func (h *History) has(id string) bool { return FileExist(h.path(id)) }
+func (h *History) mtime(id string) (time.Time, error) {
+	s, err := os.Stat(h.path(id))
+	if err != nil {
+		return time.Time{}, err
+	}
+	return s.ModTime(), nil
+}
+
 func (h *History) path(id string) string { return path.Join(h.cacheDir, "snap", id) }
 func (h *History) hpath() string         { return path.Join(h.cacheDir, "history") }
 

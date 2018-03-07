@@ -3,7 +3,9 @@ package main
 import (
 	"../core"
 	"io/ioutil"
+	"os"
 	"path"
+	"time"
 )
 
 type SnapshotConfig struct {
@@ -17,6 +19,8 @@ type SnapshotConfig struct {
 
 	Apply   ApplyConfig
 	Capture CaptureConfig
+
+	mtime time.Time
 }
 
 type ApplyConfig struct {
@@ -44,9 +48,23 @@ type CaptureConfig struct {
 	Method []*core.CaptureMethod
 }
 
+func (c CaptureConfig) HasMincores() bool {
+	for _, m := range c.Method {
+		if m.Type == "mincores" {
+			return true
+		}
+	}
+	return false
+}
+
 func LoadConfig(fname string) (*SnapshotConfig, error) {
 	var cfg SnapshotConfig
-	err := core.LoadJSONFrom(fname, &cfg)
+	s, err := os.Stat(fname)
+	if err != nil {
+		return nil, err
+	}
+	err = core.LoadJSONFrom(fname, &cfg)
+	cfg.mtime = s.ModTime()
 	return &cfg, err
 }
 
