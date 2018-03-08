@@ -12,9 +12,85 @@
         "Before": [ "snapshot:DE"],
         "Method": [
             {
-                "Type": "mincores",
-                "Mincores": ["/", "/home"],
-                "Blacklist": ["/var/lib/lastore", "$HOME/.config/pulse"]
+                "Type": "filelist",
+                "IncludeList": [
+                    "/var/lib/dpkg/info/fonts-noto-cjk.list",
+                    "/var/lib/dpkg/info/fonts-noto-hinted.list",
+                    "/var/lib/dpkg/info/fonts-noto-unhinted.list",
+                    "/var/lib/dpkg/info/fonts-wqy-microhei.list",
+                    "/var/lib/dpkg/info/fonts-droid.list",
+                    "/var/lib/dpkg/info/fonts-hanazono.list",
+                    "/var/lib/dpkg/info/fonts-adobe-source-han-serif.list",
+                    "/var/lib/dpkg/info/fonts-symbola.list",
+                    "/var/lib/dpkg/info/fonts-liberation.list",
+                    "/var/lib/dpkg/info/ttf-deepin-opensymbol.list",
+                    "/var/lib/dpkg/info/xfonts-scalable.list",
+                    "/var/lib/dpkg/info/xfonts-base.list",
+                    "/var/lib/dpkg/info/xfonts-75dpi.list",
+                    "/var/lib/dpkg/info/xfonts-100dpi.list",
+                    "/var/lib/dpkg/info/xfonts-encodings.list",
+
+                    "/var/lib/dpkg/info/xkb-data.list",
+                    "/var/lib/dpkg/info/pciutils.list",
+                    "/var/lib/dpkg/info/aspell-en.list",
+                    "/var/lib/dpkg/info/gvfs-backends.list",
+                    "/var/lib/dpkg/info/gvfs-daemons.list",
+                    "/var/lib/dpkg/info/pulseaudio.list",
+
+                    "/var/lib/dpkg/info/qtcore4-l10n.list",
+                    "/var/lib/dpkg/info/qttranslations5-l10n.list",
+
+                    "/var/lib/dpkg/info/dde-launcher.list",
+                    "/var/lib/dpkg/info/deepin-artwork.list",
+                    "/var/lib/dpkg/info/deepin-gtk-theme.list",
+                    "/var/lib/dpkg/info/deepin-icon-theme.list",
+                    "/var/lib/dpkg/info/deepin-wallpapers.list",
+                    "/var/lib/dpkg/info/deepin-wm.list",
+
+                    "/var/lib/dpkg/info/dde-api.list",
+                    "/var/lib/dpkg/info/dde-control-center.list",
+                    "/var/lib/dpkg/info/dde-control-plugin-notify.list",
+                    "/var/lib/dpkg/info/dde-control-plugin-weather.list",
+                    "/var/lib/dpkg/info/dde-trash-plugin.list",
+                    "/var/lib/dpkg/info/dde-disk-mount-plugin.list",
+                    "/var/lib/dpkg/info/dde-daemon.list",
+                    "/var/lib/dpkg/info/dde-desktop.list",
+                    "/var/lib/dpkg/info/dde-dock.list",
+                    "/var/lib/dpkg/info/dde-launcher.list",
+                    "/var/lib/dpkg/info/dde-polkit-agent.list",
+                    "/var/lib/dpkg/info/dde-qt5integration.list",
+                    "/var/lib/dpkg/info/dde-session-ui.list",
+                    "/var/lib/dpkg/info/dde-file-manager.list",
+
+                    "/var/lib/dpkg/info/libdtkcore2:amd64.list",
+                    "/var/lib/dpkg/info/libdtkwidget2:amd64.list",
+                    "/var/lib/dpkg/info/libdtkwm2:amd64.list",
+
+                    "/var/lib/dpkg/info/dde-help-common.list"
+                ],
+                "FileList": [
+                    "/lib",
+                    "/bin",
+                    "/sbin",
+                    "/usr/lib",
+                    "/usr/bin",
+                    "/etc",
+
+                    "/usr/share/applications",
+                    "/usr/share/polkit-1",
+                    "/usr/share/mime",
+                    "/var/cache/fontconfig",
+
+                    "/usr/share/fcitx/",
+                    "/usr/share/fcitx-sogoupinyin/",
+                    "/usr/share/sogou-qimpanel/",
+                    "$HOME/.sogouinput/",
+
+                    "/var/lib/polkit-1/",
+
+                    "$HOME/.config/",
+                    "$HOME/.local/share/keyrings/"
+                ]
             }
         ]
     }

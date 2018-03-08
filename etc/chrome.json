@@ -16,7 +16,11 @@
             },
             {
                 "Type": "filelist",
-                "FileList": ["$HOME/.config/google-chrome"],
+                "FileList": [
+                    "$HOME/.config/google-chrome",
+                    "$HOME/.pki/nssdb/"
+                ],
+                "IncludeList": [ "/var/lib/dpkg/info/google-chrome-stable.list" ],
                 "Blacklist": [
                     "$HOME/.config/google-chrome/Crash Reports",
                     "$HOME/.config/google-chrome/Webstore Downloads"
