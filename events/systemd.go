@@ -23,6 +23,7 @@ func (s systemdEventSources) Check(names []string) []string {
 		fmt.Println("E:", err)
 		return nil
 	}
+	defer conn.Close()
 	us, err := conn.ListUnitsByNames(names)
 	if err != nil {
 		fmt.Println("E:", err)

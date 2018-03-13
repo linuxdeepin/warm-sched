@@ -47,6 +47,13 @@ func TestSystemd(t *testing.T) {
 	}
 }
 
+func TestDBUSClose(t *testing.T) {
+	ss := systemdEventSources{}
+	for i := 0; i < 500; i++ {
+		ss.Check(nil)
+	}
+}
+
 func TestWait(t *testing.T) {
 	err := Connect(nil, nil)
 	if err == nil {
