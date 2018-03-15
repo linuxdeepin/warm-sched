@@ -4,7 +4,7 @@ After=local-fs.target
 DefaultDependencies=no
 
 [Service]
-ExecStart=/bin/warm-daemon -auto -etc=/var/lib/warm-sched/etc -cache=/var/lib/warm-sched/cache
+ExecStart=-/bin/warm-daemon -auto -etc=/var/lib/warm-sched/etc -cache=/var/lib/warm-sched/cache
 
 [Install]
 WantedBy=sysinit.target
