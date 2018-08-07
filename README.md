@@ -59,7 +59,7 @@ preload只收集了进程的elf文件，但UI程序启动还依赖大量的字�
 
 # 测试方式
 1. 安装mincores-dkms.deb以及warm-sched.deb
-2. 重启以后，登录dde, 在30分钟打开chrome,firefox等默认支持的应用程序.
+2. 重启以后，登录dde, 在30分钟内打开chrome,firefox等默认支持的应用程序. (30分钟后系统基本处于加热状态了，warm-sched daemon会自动退出，避免占用资源)
 3. 下次重启即可对比实际效果．
 
 # TODO
