@@ -1,3 +1,6 @@
+### 0.2.2 (2018-08-08)
+*   feat: add flatpak to default config
+
 <a name="0.2.1"></a>
 ### 0.2.1 (2018-07-06)
 
