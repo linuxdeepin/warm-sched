@@ -1,0 +1,17 @@
+{
+    "Id" : "flatpak",
+    "TryFile": "/usr/bin/bwrap",
+    "Apply": {
+        "After" : [ "snapshot:DE" ]
+    },
+    "Capture": {
+        "After": [ "inner:user", "process:bwrap" ],
+	"WaitSecond": 5,
+        "Method": [
+            {
+                "Type": "filelist",
+                "FileList": [ "/var/lib/flatpak/" ]
+            }
+        ]
+    }
+}
