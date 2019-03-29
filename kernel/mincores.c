@@ -129,6 +129,7 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
 
     do {
         found = false;
+        rcu_read_lock();
         radix_tree_for_each_contig(slot, &addr->i_pages, &iter, next_start) {
             if (0 != radix_tree_exceptional_entry(radix_tree_deref_slot(slot))) {
                 break;
@@ -143,7 +144,7 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
             }
 #endif
         }
-
+        rcu_read_unlock();
         if (found) {
 #ifdef DEBUG_MAPPING
             debug2 += (end - start + 1);
