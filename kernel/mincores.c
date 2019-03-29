@@ -5,6 +5,7 @@
 #include <linux/fs_struct.h>
 #include <linux/mount.h>
 #include <linux/sched.h>
+#include <linux/version.h>
 
 static const char* PROC_NAME = "mincores";
 
@@ -105,6 +106,15 @@ static bool skip_inode(struct inode* inode)
   return false;
 }
 
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4, 17, 0)
+#define i_pages page_tree
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#error "KERNEL VERSION 5.1+ hasn't been supported."
+#else
+#define i_pages i_pages
+#endif
+
 static void dump_mapping(struct seq_file*sf, unsigned long total, struct address_space* addr)
 {
   void **slot;
@@ -119,7 +129,7 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
 
   do {
     found = false;
-    radix_tree_for_each_contig(slot, &addr->page_tree, &iter, next_start) {
+    radix_tree_for_each_contig(slot, &addr->i_pages, &iter, next_start) {
       if (0 != radix_tree_exceptional_entry(radix_tree_deref_slot(slot))) {
         break;
       }
