@@ -1,4 +1,4 @@
-GOPATH=$(shell pwd)/vendor
+export GOPATH=$(shell pwd)/vendor
 all: build-ctrl build-daemon
 
 build-ctrl:
@@ -10,10 +10,16 @@ build-daemon:
 clean:
 	rm -rf bin/warmctl bin/warm-daemon
 
+UNAME_M := $(shell uname -m)
+ifneq ($(UNAME_M),sw_64)
 test:
 	cd daemon && go test
 	cd core && go test
 	cd events && go test
+else
+test:
+	true
+endif
 
 run-daemon: build-daemon
 	./bin/warm-daemon -auto=false
