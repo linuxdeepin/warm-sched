@@ -13,6 +13,26 @@ static void dump_mapping(struct seq_file*sf, unsigned long total, struct address
 static bool dump_inode(struct seq_file*, struct inode *i);
 static void traver_sb(struct seq_file*, struct super_block *sb, void *user_data);
 
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+
+#define RADIX_TREE_EXCEPTIONAL_ENTRY	2
+
+#define radix_tree_for_each_contig(slot, root, iter, start)		\
+	for (slot = radix_tree_iter_init(iter, start) ;			\
+	     slot || (slot = radix_tree_next_chunk(root, iter,		\
+				RADIX_TREE_ITER_CONTIG)) ;		\
+	     slot = radix_tree_next_slot(slot, iter,			\
+				RADIX_TREE_ITER_CONTIG))
+
+static inline int radix_tree_exceptional_entry(void *arg)
+{
+	/* Not unlikely because radix_tree_exception often tested first */
+	return (unsigned long)arg & RADIX_TREE_EXCEPTIONAL_ENTRY;
+}
+
+#endif
+
 static bool is_normal_fs_type(struct super_block* sb)
 {
     const char* typ = 0;
@@ -109,8 +129,6 @@ static bool skip_inode(struct inode* inode)
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(4, 17, 0)
 #define i_pages page_tree
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
-#error "KERNEL VERSION 5.1+ hasn't been supported."
 #else
 #define i_pages i_pages
 #endif
@@ -198,7 +216,7 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
 
     bn = bmap(inode, 0);
 
-    seq_printf(sf, "%ld\t%ld\t", bn, total);
+    seq_printf(sf, "%lld\t%ld\t", bn, total);
 
     spin_lock(&inode->i_lock);
     dump_mapping(sf, total, inode->i_mapping);
