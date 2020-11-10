@@ -72,6 +72,14 @@ static int proc_open_callback(struct inode *inode, struct file *filp)
     return single_open(filp, show_proc_content, 0);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 7)
+static const struct proc_ops proc_file_fops = {
+	.proc_read	= seq_read,
+	.proc_open	= proc_open_callback,
+	.proc_release	= single_release,
+	.proc_lseek	= seq_lseek,
+};
+#else
 static const struct file_operations proc_file_fops = {
     .owner = THIS_MODULE,
     .open = proc_open_callback,
@@ -79,6 +87,7 @@ static const struct file_operations proc_file_fops = {
     .llseek = seq_lseek,
     .release = single_release,
 };
+#endif
 
 static void traver_sb(struct seq_file* sf, struct super_block *sb, void *user_data)
 {
@@ -191,7 +200,13 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
     struct dentry *d = NULL;
     static char bufname[1024];
     char* tmpname = 0;
+    
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 7)
+    sector_t block = 0;
+    int bn = 0;
+#else
     sector_t bn = 0;
+#endif
     loff_t fs = i_size_read(inode);
     unsigned long nrpages = inode->i_mapping->nrpages;
     unsigned long total = (fs + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -214,7 +229,11 @@ static bool dump_inode(struct seq_file* sf, struct inode *inode)
     tmpname = dentry_path_raw(d, bufname, sizeof(bufname));
     dput(d);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 7)
+    bn = bmap(inode, &block);
+#else
     bn = bmap(inode, 0);
+#endif
 
     seq_printf(sf, "%lld\t%ld\t", bn, total);
 
