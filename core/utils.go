@@ -167,7 +167,10 @@ func ReadFileInclude(f string) []string {
 	for _, l := range strings.Split(string(bs), "\n") {
 		l = strings.TrimSpace(l)
 		if l != "" {
-			ret = append(ret, l)
+			fileInfo, err := os.Stat(l)
+			if err == nil && !fileInfo.IsDir() {
+				ret = append(ret, l)
+			}
 		}
 	}
 	return ret
