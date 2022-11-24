@@ -1,4 +1,6 @@
 export GOPATH=$(shell pwd)/vendor
+export GOCACHE=/tmp/
+
 all: build-ctrl build-daemon
 
 build-ctrl:

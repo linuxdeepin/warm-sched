@@ -7,6 +7,9 @@ VERSION:=0.2.0
 %:
 	dh $@ --with dkms --with systemd
 
+override_dh_installinit:
+	true
+
 override_dh_auto_install:
 	mkdir -p $(DESTDIR)/usr/src/mincores-$(VERSION)
 	mkdir -p $(DESTDIR)/usr/lib/modules-load.d/
