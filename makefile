@@ -1,23 +1,37 @@
-export GOPATH=$(shell pwd)/vendor
+PREFIX = /usr
+GOPATH_DIR = gopath
+GOPKG_PREFIX = github.com/linuxdeepin/warm-sched
+export GOPATH=$(shell go env GOPATH)
+GOCMD = env GOPATH="$(CURDIR)/$(GOPATH_DIR):$(CURDIR)/vendor:$(GOPATH)" go
+GOBUILD =$(GOCMD) build $(GO_BUILD_FLAGS)
+GOTEST = $(GOCMD) test -v
+export GO111MODULE=off
 export GOCACHE=/tmp/
 
 all: build-ctrl build-daemon
 
-build-ctrl:
-	cd ctl && go build -o ../bin/warmctl
+prepare:
+	@mkdir -p bin
+	@mkdir -p $(GOPATH_DIR)/src/$(dir $(GOPKG_PREFIX));
+	@[ -e  $(GOPATH_DIR)/src/$(GOPKG_PREFIX) ] || ln -snf ../../../.. $(GOPATH_DIR)/src/$(GOPKG_PREFIX);
 
-build-daemon:
-	cd daemon && go build -o ../bin/warm-daemon
+build-ctrl: prepare
+	$(GOBUILD) -o bin/warmctl $(GOPKG_PREFIX)/ctl
+
+build-daemon: prepare
+	$(GOBUILD) -o bin/warm-daemon $(GOPKG_PREFIX)/daemon
 
 clean:
+	rm -rf gopath
 	rm -rf bin/warmctl bin/warm-daemon
 
 UNAME_M := $(shell uname -m)
 ifneq ($(UNAME_M),sw_64)
 test:
-	cd daemon && go test
-	cd core && go test
-	cd events && go test
+	$(GOTEST) $(GOPKG_PREFIX)/daemon
+	$(GOTEST) $(GOPKG_PREFIX)/ctl
+	$(GOTEST) $(GOPKG_PREFIX)/core
+	$(GOTEST) $(GOPKG_PREFIX)/events
 else
 test:
 	true

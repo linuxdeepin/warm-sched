@@ -2,13 +2,14 @@ package core
 
 import (
 	"fmt"
-	"golang.org/x/sys/unix"
 	"os"
 	"path"
 	"reflect"
 	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestRangeStartWithTrues(t *testing.T) {

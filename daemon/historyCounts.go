@@ -1,8 +1,9 @@
 package main
 
 import (
-	"../core"
 	"sync"
+
+	"github.com/linuxdeepin/warm-sched/core"
 )
 
 type HistoryCounts struct {

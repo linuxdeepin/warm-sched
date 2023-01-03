@@ -1,8 +1,9 @@
 package main
 
 import (
-	"../events"
 	"context"
+
+	"github.com/linuxdeepin/warm-sched/events"
 )
 
 func (d *Daemon) scheduleApplys() error {

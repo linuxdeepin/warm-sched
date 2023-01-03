@@ -1,11 +1,12 @@
 package main
 
 import (
-	"../core"
 	"io/ioutil"
 	"os"
 	"path"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
 )
 
 type SnapshotConfig struct {

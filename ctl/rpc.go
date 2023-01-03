@@ -1,11 +1,12 @@
 package main
 
 import (
-	"../core"
 	"fmt"
 	"net/rpc"
 	"os"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
 )
 
 func SwitchUserSession() error {

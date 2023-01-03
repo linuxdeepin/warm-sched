@@ -1,9 +1,10 @@
 package events
 
 import (
-	"../core"
 	"fmt"
 	"os"
+
+	"github.com/linuxdeepin/warm-sched/core"
 )
 
 type x11Source struct {

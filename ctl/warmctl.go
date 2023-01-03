@@ -1,12 +1,13 @@
 package main
 
 import (
-	"../core"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
 )
 
 type AppFlags struct {

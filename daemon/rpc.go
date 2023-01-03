@@ -1,12 +1,13 @@
 package main
 
 import (
-	"../core"
-	"../events"
 	"context"
 	"net"
 	"net/rpc"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
+	"github.com/linuxdeepin/warm-sched/events"
 )
 
 type RPCService struct {

@@ -12,3 +12,4 @@ bin
 /warm-daemon
 /warmctl
 /ctl/ctl
+cache
