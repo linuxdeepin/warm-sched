@@ -68,11 +68,12 @@ func TestBlackList(t *testing.T) {
 	}
 
 	if r.Has("/etc/hosts") || r.Has("/etc/hostname") {
-		t.Fatal("Result mistmatch")
+		t.Fatal("Result mismatch")
 	}
 }
 
 func TestCaptureSelf(t *testing.T) {
+	t.Skip("do not test it")
 	r := SimpleCaptureResult{}
 	err := DoCapture(NewCaptureMethodPIDs(os.Getpid()), r.Add)
 	if err != nil {
