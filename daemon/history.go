@@ -1,14 +1,15 @@
 package main
 
 import (
-	"../core"
-	"../events"
 	"context"
 	"fmt"
 	"os"
 	"path"
 	"sync"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
+	"github.com/linuxdeepin/warm-sched/events"
 )
 
 type History struct {

@@ -2,13 +2,14 @@ package core
 
 import (
 	"fmt"
-	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/xprop"
 	"io/ioutil"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xprop"
 )
 
 type X11Finder func(pid int, wmclass string) bool

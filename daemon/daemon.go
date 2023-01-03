@@ -1,8 +1,6 @@
 package main
 
 import (
-	"../core"
-	"../events"
 	"context"
 	"flag"
 	"fmt"
@@ -10,6 +8,9 @@ import (
 	"os/exec"
 	"path"
 	"time"
+
+	"github.com/linuxdeepin/warm-sched/core"
+	"github.com/linuxdeepin/warm-sched/events"
 )
 
 type Daemon struct {
