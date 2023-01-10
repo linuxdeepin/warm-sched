@@ -19,8 +19,9 @@ type AppFlags struct {
 
 	dump bool
 
-	diffAdded bool
-	diff      bool
+	diffAdded      bool
+	diff           bool
+	forceEmitEvent string
 }
 
 func InitFlags() AppFlags {
@@ -33,6 +34,7 @@ func InitFlags() AppFlags {
 	flag.BoolVar(&af.dump, "dump", false, "dump content of the snapshot")
 	flag.BoolVar(&af.diff, "d", false, "show difference current pagecache with captured $id")
 	flag.BoolVar(&af.diffAdded, "da", false, "same as flag d, except this will save added snapshot to the $file")
+	flag.StringVar(&af.forceEmitEvent, "emit-event", "", "force emit event")
 
 	flag.Parse()
 	return af
@@ -143,6 +145,10 @@ func doActions(af AppFlags, args []string) error {
 			return err
 		}
 		fmt.Println(diffs)
+
+	case af.forceEmitEvent != "":
+		return ForceEmitEvent(af.forceEmitEvent)
+
 	default:
 		cfgs, err := ListConfig()
 		if err != nil {

@@ -24,6 +24,16 @@ func SwitchUserSession() error {
 	return c.Call(core.RPCName+".SwitchUserSession", env, &noused)
 }
 
+func ForceEmitEvent(event string) error {
+	c, err := rpc.Dial("unix", core.RPCSocket)
+	if err != nil {
+		return err
+	}
+
+	var noused bool
+	return c.Call(core.RPCName+".ForceEmitEvent", event, &noused)
+}
+
 func Schedule() error {
 	c, err := rpc.Dial("unix", core.RPCSocket)
 	if err != nil {

@@ -154,7 +154,7 @@ func TestVerifyMincores(t *testing.T) {
 			t.Error(err)
 		}
 		return nil
-	})
+	}, nil)
 }
 
 func VerifyBySyscall(info FileInfo) error {
