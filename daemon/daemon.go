@@ -82,6 +82,11 @@ func (d *Daemon) Status() []string {
 	return ret
 }
 
+func (d *Daemon) ForceEmitEvent(event string) error {
+	events.Emit(event)
+	return nil
+}
+
 func (d *Daemon) SwitchUserSession(envs map[string]string) error {
 	if len(envs) == 0 {
 		return fmt.Errorf("Empty envs")

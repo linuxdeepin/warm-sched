@@ -58,6 +58,18 @@ func Run(ctx context.Context) error { return _M_.Run(ctx) }
 
 func Scopes() []string { return _M_.Scopes() }
 
+func Emit(event string) {
+	scope, id, ok := splitEvent(event)
+	if !ok {
+		return
+	}
+	// 仅仅允许 x11 scope
+	if scope != "x11" {
+		return
+	}
+	_M_.Emit(scope, id)
+}
+
 func (m *_Manager) Check(es []string) []string {
 	var ret []string
 	for _, raw := range es {

@@ -67,3 +67,8 @@ func (s RPCService) SchedulePendings(_ string, out *map[string][]string) error {
 	*out = ret
 	return nil
 }
+
+func (s RPCService) ForceEmitEvent(event string, out *bool) error {
+	*out = true
+	return s.daemon.ForceEmitEvent(event)
+}

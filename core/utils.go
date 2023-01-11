@@ -1,16 +1,15 @@
 package core
 
 import (
-	"bytes"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"sort"
 	"strings"
+	"sync"
 )
 
 var pageSize = os.Getpagesize()
@@ -65,37 +64,98 @@ func pageRangeToSizeRange(pageSize int, maxPageCount int, rs ...PageRange) [][2]
 	return ret
 }
 
-func ListMountPoints() []string {
-	cmd := exec.Command("/bin/df",
-		"-t", "ext2",
-		"-t", "ext3",
-		"-t", "ext4",
-		"-t", "fat",
-		"-t", "ntfs",
-		"--output=target")
-	cmd.Env = []string{"LC_ALL=C"}
-	buf := bytes.NewBuffer(nil)
-	cmd.Stdout = buf
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+const sysFstabPath = "/etc/fstab"
+
+var _bindMapCache map[string]string
+var _getMountBindMapOnce sync.Once
+
+func getMountBindMap(fstabPath string) map[string]string {
+	_getMountBindMapOnce.Do(func() {
+		var err error
+		_bindMapCache, err = getMountBindMapRaw(fstabPath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "WARN: getMountBindMap failed:", err)
+		}
+	})
+	return _bindMapCache
+}
+
+func getMountBindMapRaw(fstabPath string) (map[string]string, error) {
+	fstabData, err := ioutil.ReadFile(fstabPath)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]string)
+	// result 的 key 是源路径，value 是挂载点
+	lines := strings.Split(string(fstabData), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || line[0] == '#' {
+			// ignore empty and comment line
+			continue
+		}
+
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		src := fields[0]
+		dst := fields[1]
+		fsType := fields[2]
+		if fsType == "none" && strings.HasPrefix(src, "/") &&
+			strings.HasPrefix(dst, "/") {
+			result[src] = dst
+		}
+	}
+
+	return result, nil
+}
+
+const sysProcMountsPath = "/proc/mounts"
+
+func ListMountPoints(mountsPath string) []string {
+	mountData, err := ioutil.ReadFile(mountsPath)
 	if err != nil {
 		return []string{"/"}
 	}
 
-	line, err := buf.ReadString('\n')
-	if line != "Mounted on\n" || err != nil {
-		return []string{"/"}
-	}
-	var ret []string
-	for {
-		line, err := buf.ReadString('\n')
-		if err != nil {
-			break
+	supportedFsTypes := []string{"ext2", "ext3", "ext4",
+		"fat", "ntfs", "btrfs", "xfs"}
+
+	var result []string
+
+	lines := strings.Split(string(mountData), "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
 		}
-		ret = append(ret, strings.TrimSpace(line))
+		mountPoint := fields[1]
+		fsType := fields[2]
+		if strSliceContains(supportedFsTypes, fsType) {
+			// is supported fs
+			result = append(result, mountPoint)
+		}
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(ret)))
-	return ret
+
+	// 按字符串长度（长->短）排序 result
+	// 比如 /home/test, /home, /
+	sort.Slice(result, func(i, j int) bool {
+		// less func
+		return len(result[i]) > len(result[j])
+	})
+
+	return result
+}
+
+func strSliceContains(slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
 
 func _ReduceFilePath(expandFn func(string) string, fs ...string) []string {

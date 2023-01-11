@@ -66,10 +66,12 @@ const (
 )
 
 func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
+	bindMap := getMountBindMap(sysFstabPath)
+
 	switch m.Type {
 	case _MethodMincores:
-		mps := calcRealTargets(_ReduceFilePath(m.Getenv, m.Mincores...), SystemMountPoints)
-		return _DoCaptureByMincores(mps, m.wrap(handle))
+		mps := calcRealTargets(_ReduceFilePath(m.Getenv, m.Mincores...), SystemMountPoints, bindMap)
+		return _DoCaptureByMincores(mps, m.wrap(handle), bindMap)
 	case _MethodPIDs:
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
 	case _MethodFileList:
@@ -77,7 +79,7 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 		for _, i := range m.IncludeList {
 			all = append(all, ReadFileInclude(i)...)
 		}
-		return _DoCaptureByFileList(_ReduceFilePath(m.Getenv, all...), true, m.wrap(handle))
+		return _DoCaptureByFileList(_ReduceFilePath(m.Getenv, all...), true, m.wrap(handle), bindMap)
 	case _MethodUIApp:
 		_m, err := NewCaptureMethodUIApp(m.WMClass)
 		if err != nil {
@@ -133,13 +135,13 @@ func (m CaptureMethod) wrap(fn FileInfoHandleFunc) FileInfoHandleFunc {
 
 // real capture methods
 
-func _DoCaptureByMincores(mountpoints []string, handle FileInfoHandleFunc) error {
+func _DoCaptureByMincores(mountpoints []string, handle FileInfoHandleFunc, bindMap map[string]string) error {
 	if err := supportProduceByKernel(); err != nil {
 		return err
 	}
 	ch := make(chan FileInfo)
 
-	go generateFileInfoByKernel(ch, mountpoints)
+	go generateFileInfoByKernel(ch, mountpoints, bindMap)
 
 	for info := range ch {
 		if err := handle(info); err != nil {
@@ -167,15 +169,17 @@ func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 	return nil
 }
 
-func _DoCaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc) error {
-	mps := calcRealTargets(list, SystemMountPoints)
+func _DoCaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc, bindMap map[string]string) error {
+	mps := calcRealTargets(list, SystemMountPoints, bindMap)
+	fmt.Println("calcRealTargets return mount points:", mps)
 	ch := make(chan FileInfo)
-	go generateFileInfoByKernel(ch, mps)
+	go generateFileInfoByKernel(ch, mps, bindMap)
 	for info := range ch {
 		for _, i := range list {
 			if !strings.HasPrefix(info.Name, i) {
 				continue
 			}
+
 			if err := handle(info); err != nil {
 				return err
 			}
