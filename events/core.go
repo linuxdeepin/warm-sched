@@ -15,8 +15,10 @@ type Generator interface {
 
 type _Wait struct {
 	events   []string
-	callback func()
+	callback EventCallback
 }
+
+type EventCallback func() bool
 
 type _Manager struct {
 	lock       sync.RWMutex //protect cache and generators
@@ -51,7 +53,8 @@ var _M_ = &_Manager{
 func Pendings(scope string) []string { return _M_.Pendings(scope) }
 func Check(es []string) []string     { return _M_.Check(es) }
 
-func Connect(es []string, callback func()) error { return _M_.Connect(es, callback) }
+// Connect 连接事件，callback 返回 true 时当事件发生后不会消除事件处理器，反之会消除事件处理器。
+func Connect(es []string, callback EventCallback) error { return _M_.Connect(es, callback) }
 
 func Register(g Generator)          { _M_.Register(g) }
 func Run(ctx context.Context) error { return _M_.Run(ctx) }
@@ -96,6 +99,10 @@ func splitEvent(raw string) (string, string, bool) {
 	return fs[0], fs[1], true
 }
 
+func SplitEvent(raw string) (string, string, bool) {
+	return splitEvent(raw)
+}
+
 func (m *_Manager) Scopes() []string {
 	var ret []string
 	m.lock.RLock()
@@ -117,7 +124,7 @@ func (m *_Manager) isSupport(raw string) bool {
 	return ok
 }
 
-func (m *_Manager) Connect(es []string, callback func()) error {
+func (m *_Manager) Connect(es []string, callback EventCallback) error {
 	if len(es) == 0 {
 		return fmt.Errorf("At least one event to connect")
 	}
@@ -154,6 +161,25 @@ func (m *_Manager) Emit(scope string, id string) {
 	m.lock.Lock()
 	m.cache[scope][id] = true
 	fmt.Printf("Emit \"%s:%s\"\n", scope, id)
+	m.lock.Unlock()
+}
+
+// reset 重置事件为未发生状态，仅会处理 x11 scope 的事件，其它忽略。
+// 如果参数 es 包含 x11 scope 时间，reset 之后 isDone 会返回 false。
+func (m *_Manager) reset(es []string) {
+	m.lock.Lock()
+	for _, event := range es {
+		scope, id, ok := splitEvent(event)
+		if ok {
+			// 仅允许 reset x11 scope 事件
+			if scope == "x11" {
+				if _, exists := m.cache[scope][id]; exists {
+					m.cache[scope][id] = false
+					// 设为 false 后，事件恢复为未发生状态，继续被监控。
+				}
+			}
+		}
+	}
 	m.lock.Unlock()
 }
 
@@ -199,9 +225,16 @@ func (m *_Manager) Run(ctx context.Context) error {
 			m.waitlock.Lock()
 			for id, w := range m.waits {
 				if m.isDone(w.events) {
-					dels = append(dels, id)
+					shouldDel := true
 					if w.callback != nil {
-						w.callback()
+						// callback 返回 true 时不删除这个事件处理器
+						if w.callback() {
+							shouldDel = false
+							m.reset(w.events)
+						}
+					}
+					if shouldDel {
+						dels = append(dels, id)
 					}
 				}
 			}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/linuxdeepin/warm-sched/core"
@@ -25,6 +26,9 @@ type Daemon struct {
 	cancel func()
 
 	scheduling bool
+
+	retryCaptureCount map[string]int
+	retryCaptureMu    sync.Mutex
 }
 
 func (d *Daemon) Status() []string {
@@ -143,10 +147,11 @@ func quitWhenTimeout(ctx context.Context, cancel func(), t time.Duration) {
 func RunDaemon(etc string, cache, addr string, auto bool, lowMemory uint64, timeout time.Duration) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d := &Daemon{
-		history:     NewHistory(ctx, cache),
-		innerSource: &innerSource{},
-		ctx:         ctx,
-		cancel:      cancel,
+		history:           NewHistory(ctx, cache),
+		innerSource:       &innerSource{},
+		ctx:               ctx,
+		cancel:            cancel,
+		retryCaptureCount: make(map[string]int),
 	}
 
 	if !FileExist(path.Join(cache, "debug")) {
