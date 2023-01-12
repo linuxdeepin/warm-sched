@@ -1,8 +1,11 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -27,6 +30,8 @@ type CaptureMethod struct {
 
 	// 4. "uiapp:wmclass"
 	WMClass string
+
+	Processes []string
 }
 
 func NewCaptureMethodPIDs(pids ...int) *CaptureMethod {
@@ -63,6 +68,7 @@ const (
 	_MethodPIDs     = "pids"
 	_MethodFileList = "filelist"
 	_MethodUIApp    = "uiapp"
+	_MethodProcess  = "process"
 )
 
 func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
@@ -74,6 +80,8 @@ func DoCapture(m *CaptureMethod, handle FileInfoHandleFunc) error {
 		return _DoCaptureByMincores(mps, m.wrap(handle), bindMap)
 	case _MethodPIDs:
 		return _DoCaptureByPIDs(m.PIDs, m.wrap(handle))
+	case _MethodProcess:
+		return _DoCaptureByProcess(m.Processes, m.wrap(handle))
 	case _MethodFileList:
 		all := m.FileList
 		for _, i := range m.IncludeList {
@@ -152,6 +160,9 @@ func _DoCaptureByMincores(mountpoints []string, handle FileInfoHandleFunc, bindM
 }
 
 func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
+	if len(pids) == 0 {
+		return errors.New("not found process")
+	}
 	fs, err := ReferencedFilesByPID(pids...)
 	if err != nil {
 		return err
@@ -167,6 +178,42 @@ func _DoCaptureByPIDs(pids []int, handle FileInfoHandleFunc) error {
 		}
 	}
 	return nil
+}
+
+// 调用 pgrep 命令获取和 name 相关的进程号
+func getProcessPids(name string, user string) ([]int, error) {
+	var args []string
+	if user != "" {
+		args = append(args, "-U", user)
+	}
+	// -x 精确匹配命令名称
+	args = append(args, "-x", "--", name)
+	out, err := exec.Command("pgrep", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(string(out), "\n")
+	var result []int
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err == nil {
+			result = append(result, pid)
+		}
+	}
+	return result, nil
+}
+
+func _DoCaptureByProcess(processes []string, handle FileInfoHandleFunc) error {
+	var pids []int
+	for _, process := range processes {
+		tmpPids, _ := getProcessPids(process, "")
+		pids = append(pids, tmpPids...)
+	}
+	return _DoCaptureByPIDs(pids, handle)
 }
 
 func _DoCaptureByFileList(list []string, _ bool, handle FileInfoHandleFunc, bindMap map[string]string) error {
