@@ -197,11 +197,20 @@ func (h *History) getSnapSize(id string) int {
 }
 
 func (h *History) doApply(id string) error {
+	snapPath := h.path(id)
 	var snap core.Snapshot
-	err := core.LoadFrom(h.path(id), &snap)
+	err := core.LoadFrom(snapPath, &snap)
 	if err != nil {
+		// 如果加载失败，表示 snap 文件已损坏，应该删除
+		Log("remove the corrupted snapshot file %s", snapPath)
+		rmErr := os.Remove(snapPath)
+		if rmErr != nil {
+			Log("WARN: remove the corrupted snapshot file failed: %v\n", err)
+		}
+
 		return err
 	}
+
 	err = core.ApplySnapshot(&snap, true)
 	if err != nil {
 		return err
