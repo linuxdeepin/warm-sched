@@ -78,8 +78,9 @@ func TestWait(t *testing.T) {
 
 func TestProcess(t *testing.T) {
 	found := false
-	Connect([]string{"process:go"}, func() {
+	Connect([]string{"process:go"}, func() bool {
 		found = true
+		return false
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -95,13 +96,15 @@ func TestProcess(t *testing.T) {
 }
 
 func TestFile(t *testing.T) {
-	Connect([]string{"file:/shouldn't have this file"}, func() {
+	Connect([]string{"file:/shouldn't have this file"}, func() bool {
 		t.Fatal("The file shouldn't exists.")
+		return false
 	})
 
 	found := false
-	Connect([]string{"file:/etc"}, func() {
+	Connect([]string{"file:/etc"}, func() bool {
 		found = true
+		return false
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
