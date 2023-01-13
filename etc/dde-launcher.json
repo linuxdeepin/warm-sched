@@ -1,0 +1,58 @@
+{
+	"Id":"dde-launcher",
+	"TryFile": "/usr/bin/dde-launcher",
+	"Apply": {
+		"After": [
+			"snapshot:DE"
+		]
+	},
+	"Capture": {
+		"After": [
+			"inner:user",
+			"process:dde-launcher"
+		],
+		"WaitSecond": 12,
+		"Lifetime": 10,
+		"Method": [
+			{
+				"Type": "process",
+				"Processes": ["dde-launcher"]
+			},
+			{
+				"Type": "filelist",
+				"FileList": [
+					"/usr/share/icons",
+					"$HOME/.cache/deepin/icons",
+					"/usr/share/fontconfig/conf.avail",
+					"/usr/local/share/fonts/.uuid",
+					"/usr/share/fonts/cmap/.uuid",
+					"/usr/share/fonts/cMap/.uuid",
+					"/usr/share/fonts/fonts-cesi/.uuid",
+					"/usr/share/fonts/opentype/noto/.uuid",
+					"/usr/share/fonts/opentype/.uuid",
+					"/usr/share/fonts/truetype/ancient-scripts/.uuid",
+					"/usr/share/fonts/truetype/deepin/.uuid",
+					"/usr/share/fonts/truetype/dejavu/.uuid",
+					"/usr/share/fonts/truetype/droid/.uuid",
+					"/usr/share/fonts/truetype/lohit-devanagari/.uuid",
+					"/usr/share/fonts/truetype/noto/.uuid",
+					"/usr/share/fonts/truetype/unifont/.uuid",
+					"/usr/share/fonts/truetype/.uuid",
+					"/usr/share/fonts/.uuid",
+					"/usr/share/fonts/wps-office/.uuid",
+					"/usr/share/fonts/X11/100dpi/.uuid",
+					"/usr/share/fonts/X11/75dpi/.uuid",
+					"/usr/share/fonts/X11/encodings/large/.uuid",
+					"/usr/share/fonts/X11/encodings/.uuid",
+					"/usr/share/fonts/X11/misc/.uuid",
+					"/usr/share/fonts/X11/Type1/.uuid",
+					"/usr/share/fonts/X11/util/.uuid",
+					"/usr/share/fonts/X11/.uuid"
+				],
+				"IncludeList": [
+					"/usr/lib/dpkg-db/info/dde-launcher.list"
+				]
+			}
+		]
+	}
+}
