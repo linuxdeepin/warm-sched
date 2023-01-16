@@ -8,7 +8,7 @@ GOTEST = $(GOCMD) test -v
 export GO111MODULE=off
 export GOCACHE=/tmp/
 
-all: build-ctrl build-daemon
+all: build-ctrl build-daemon build-snapshot-convert
 
 prepare:
 	@mkdir -p bin
@@ -20,6 +20,9 @@ build-ctrl: prepare
 
 build-daemon: prepare
 	$(GOBUILD) -o bin/warm-daemon $(GOPKG_PREFIX)/cmd/daemon
+
+build-snapshot-convert: prepare
+	$(GOBUILD) -o bin/warm-snapshot-convert $(GOPKG_PREFIX)/cmd/snapshot-convert
 
 clean:
 	rm -rf gopath
