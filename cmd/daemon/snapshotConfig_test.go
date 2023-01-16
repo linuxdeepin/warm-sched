@@ -1,11 +1,14 @@
 package main
 
 import (
+	"path/filepath"
 	"testing"
 )
 
 func TestLoading(t *testing.T) {
-	cfg, err := LoadConfig("../etc/basic.json")
+	cfgDir := "../../etc"
+
+	cfg, err := LoadConfig(filepath.Join(cfgDir, "basic.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -13,7 +16,7 @@ func TestLoading(t *testing.T) {
 		t.Fatal("Result error")
 	}
 
-	cfg, err = LoadConfig("../etc/chrome.json")
+	cfg, err = LoadConfig(filepath.Join(cfgDir, "chrome.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +27,7 @@ func TestLoading(t *testing.T) {
 		t.Fatal("Result error")
 	}
 
-	_, err = ScanConfigs("../etc")
+	_, err = ScanConfigs(cfgDir)
 	if err != nil {
 		t.Fatal(err)
 	}

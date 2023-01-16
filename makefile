@@ -16,10 +16,10 @@ prepare:
 	@[ -e  $(GOPATH_DIR)/src/$(GOPKG_PREFIX) ] || ln -snf ../../../.. $(GOPATH_DIR)/src/$(GOPKG_PREFIX);
 
 build-ctrl: prepare
-	$(GOBUILD) -o bin/warmctl $(GOPKG_PREFIX)/ctl
+	$(GOBUILD) -o bin/warmctl $(GOPKG_PREFIX)/cmd/ctl
 
 build-daemon: prepare
-	$(GOBUILD) -o bin/warm-daemon $(GOPKG_PREFIX)/daemon
+	$(GOBUILD) -o bin/warm-daemon $(GOPKG_PREFIX)/cmd/daemon
 
 clean:
 	rm -rf gopath
@@ -28,8 +28,8 @@ clean:
 UNAME_M := $(shell uname -m)
 ifneq ($(UNAME_M),sw_64)
 test:
-	$(GOTEST) $(GOPKG_PREFIX)/daemon
-	$(GOTEST) $(GOPKG_PREFIX)/ctl
+	$(GOTEST) $(GOPKG_PREFIX)/cmd/daemon
+	$(GOTEST) $(GOPKG_PREFIX)/cmd/ctl
 	$(GOTEST) $(GOPKG_PREFIX)/core
 	$(GOTEST) $(GOPKG_PREFIX)/events
 else
