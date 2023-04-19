@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"sort"
@@ -181,29 +182,45 @@ func EnsureDir(d string) error {
 	return os.MkdirAll(d, 0755)
 }
 
-func LoadJSONFrom(fname string, o interface{}) error {
+func LoadJSONFrom(fname string, o interface{}) (err error) {
 	f, err := os.Open(fname)
 	if err != nil {
-		return err
+		return
 	}
-	defer f.Close()
+	defer func() {
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else {
+			log.Printf("LoadJSONForm close %v %v", f.Name(), closeErr)
+		}
+	}()
 	err = json.NewDecoder(f).Decode(o)
 	if err != nil {
-		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+		err = fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+		return
 	}
-	return nil
+	return
 }
-func LoadFrom(fname string, o interface{}) error {
+func LoadFrom(fname string, o interface{}) (err error) {
 	f, err := os.Open(fname)
 	if err != nil {
-		return err
+		return
 	}
-	defer f.Close()
+	defer func() {
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else {
+			log.Printf("LoadForm close %v %v", f.Name(), closeErr)
+		}
+	}()
 	err = gob.NewDecoder(f).Decode(o)
 	if err != nil {
-		return fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+		err = fmt.Errorf("LoadFrom(%q, %T) -> %q", fname, o, err.Error())
+		return
 	}
-	return nil
+	return
 }
 func StoreTo(fname string, o interface{}) error {
 	err := EnsureDir(path.Dir(fname))
