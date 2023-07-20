@@ -35,11 +35,23 @@ static inline int radix_tree_exceptional_entry(void *arg)
 
 static bool is_normal_fs_type(struct super_block* sb)
 {
-    const char* typ = 0;
-    if (sb == 0 || sb->s_bdev == 0) {
+    const char* typ = NULL;
+    if (sb == NULL)
+    {
         return false;
     }
+
     typ = sb->s_type->name;
+    if (strcmp(typ, "btrfs") == 0) {
+        // NOTE: btrfs 不判断 sb->s_bdev
+        return true;
+    }
+
+    if (sb->s_bdev == NULL)
+    {
+        return false;
+    }
+
     if (strcmp(typ, "ext3") == 0||
         strcmp(typ, "ext4") == 0||
         strcmp(typ, "ext2") == 0||
