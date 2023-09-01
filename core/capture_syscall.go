@@ -3,49 +3,60 @@ package core
 import (
 	"fmt"
 	"os"
+	"log"
 	"syscall"
 	"unsafe"
 )
 
-func FileMincore(fname string) (FileInfo, error) {
+func FileMincore(fname string) (fileInfo FileInfo, err error) {
+	fileInfo = FileInfo{}
 	info, err := os.Lstat(fname)
 	if err != nil {
-		return FileInfo{}, err
+		return
 	}
 
 	size := info.Size()
 	if !info.Mode().IsRegular() || size == 0 {
-		return FileInfo{}, fmt.Errorf("%q is not a normal file", fname)
+		err = fmt.Errorf("%q is not a normal file", fname)
+		return
 	}
 
 	f, err := os.Open(fname)
 	if err != nil {
-		return FileInfo{}, err
+		return
 	}
-	defer f.Close()
+	defer func() {
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else {
+			log.Printf("FileMincore close %v %v", f.Name(), closeErr)
+		}
+	}()
 
 	mappings, err := fileMincore(int(f.Fd()), size)
 	if err != nil {
-		return FileInfo{}, err
+		return
 	}
 
 	var sector = uint64(0)
 	if len(mappings) > 0 && RunByRoot {
 		sector, err = getSectorNumber(f.Fd())
 		if err != nil {
-			return FileInfo{}, err
+			return
 		}
 	}
 	sinfo := info.Sys().(*syscall.Stat_t)
 
-	return FileInfo{
+	fileInfo = FileInfo{
 		Name:     fname,
 		FileSize: uint64(size),
 		Mapping:  mappings,
 
 		dev:    uint64(sinfo.Dev),
 		sector: sector,
-	}, nil
+	}
+	return
 }
 
 func toRange(vec []bool) (PageRange, []bool) {
